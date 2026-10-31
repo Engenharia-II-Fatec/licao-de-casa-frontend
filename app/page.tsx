@@ -1,69 +1,241 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { FormEvent, useState } from "react";
+import Link from "next/link";
+
+const Icon = ({
+  children,
+  className = "size-[18px]",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={className}
+  >
+    {children}
+  </svg>
+);
+
+const CapIcon = () => (
+  <Icon className="size-6">
+    <path d="M22 10 12 5 2 10l10 5 10-5Z" />
+    <path d="M6 12v5c3 2.5 9 2.5 12 0v-5" />
+    <path d="M22 10v6" />
+  </Icon>
+);
+const UserIcon = () => (
+  <Icon>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+  </Icon>
+);
+const LockIcon = () => (
+  <Icon>
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </Icon>
+);
+const EyeIcon = ({ off }: { off?: boolean }) => (
+  <Icon>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+    <circle cx="12" cy="12" r="3" />
+    {off && <path d="M4 4l16 16" />}
+  </Icon>
+);
+const LoginIcon = () => (
+  <Icon>
+    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+    <path d="M10 8l4 4-4 4" />
+    <path d="M14 12H3" />
+  </Icon>
+);
+const HeadsetIcon = () => (
+  <Icon className="size-[15px]">
+    <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+    <rect x="3" y="14" width="4" height="6" rx="2" />
+    <rect x="17" y="14" width="4" height="6" rx="2" />
+  </Icon>
+);
+
+const labelClass = "text-sm font-semibold text-on-surface";
+const inputClass =
+  "h-[3.25rem] w-full rounded-2xl bg-surface-container-low px-12 text-[0.9rem] text-on-surface " +
+  "outline-none transition placeholder:text-on-surface-variant/50 " +
+  "focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/45";
+const leadingClass =
+  "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/70";
+
+export default function LoginPage() {
+  const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // TODO: integrar com sua API de autenticação
+      await new Promise((r) => setTimeout(r, 800));
+      console.log({ user, password, remember });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-surface px-5 py-8">
+      {/* Brilho suave de fundo: só transições tonais, sem linhas */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_0%_100%,rgba(242,113,28,0.1),transparent_70%),radial-gradient(50%_40%_at_100%_0%,rgba(92,177,255,0.08),transparent_70%)]"
+      />
+
+      <header className="relative flex flex-col items-center gap-4">
+        <div className="grid size-16 place-items-center rounded-[1.25rem] bg-surface-container-lowest text-primary-container shadow-ambient">
+          <CapIcon />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <h1 className="text-[1.375rem] font-extrabold tracking-tight text-primary">
+          Espaço Lição de Casa
+        </h1>
+      </header>
+
+      {/* Card em vidro: surface 80% + blur 12px */}
+      <section className="relative w-full max-w-[25rem] rounded-3xl bg-surface/80 px-5 pb-6 pt-7 shadow-ambient backdrop-blur-[12px] sm:px-8 sm:pb-7 sm:pt-9">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="user" className={labelClass}>
+              E-mail ou Usuário
+            </label>
+            <div className="relative">
+              <span className={leadingClass}>
+                <UserIcon />
+              </span>
+              <input
+                id="user"
+                type="text"
+                autoComplete="username"
+                placeholder="Seu nome de usuário"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="password" className={labelClass}>
+              Senha
+            </label>
+            <div className="relative">
+              <span className={leadingClass}>
+                <LockIcon />
+              </span>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="Sua senha secreta"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputClass}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-on-surface-variant/70 transition hover:bg-surface-container-high focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                <EyeIcon off={showPassword} />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 text-[0.8rem]">
+            <label className="relative inline-flex cursor-pointer items-center gap-2.5 text-on-surface-variant">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="peer absolute size-[1.1rem] opacity-0"
+              />
+              <span className="grid size-[1.1rem] place-items-center rounded-[0.35rem] bg-surface-container-highest text-white transition peer-checked:bg-primary-container peer-checked:[&>svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/45">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="size-3 opacity-0 transition"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+              </span>
+              Lembrar de mim
+            </label>
+            <Link
+              href="/recuperar-senha"
+              className="font-semibold text-secondary hover:underline"
+            >
+              Esqueceu a senha?
+            </Link>
+          </div>
+
+          {/* CTA: gradiente 135° primary → primary-container */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-1 inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-gradient-to-br from-primary to-primary-container text-[0.95rem] font-bold text-white shadow-cta transition hover:shadow-cta-hover active:scale-[0.99] disabled:cursor-progress disabled:opacity-70 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary-fixed"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {loading ? "Entrando..." : "Entrar"}
+            {!loading && <LoginIcon />}
+          </button>
+        </form>
+
+        <div className="mt-8 flex flex-col items-center gap-3 text-xs text-on-surface-variant">
+          <p>Precisa de ajuda com seu acesso?</p>
+          <Link
+            href="/suporte"
+            className="inline-flex items-center gap-2 rounded-full bg-secondary-container/15 px-4 py-2 text-xs font-semibold text-secondary transition hover:bg-secondary-container/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
           >
-            Documentation
-          </a>
+            <HeadsetIcon />
+            Falar com o Suporte
+          </Link>
         </div>
-      </main>
-    </div>
+      </section>
+
+      <footer className="relative flex flex-col items-center gap-2.5">
+        <nav
+          aria-label="Rodapé"
+          className="flex gap-6 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-on-surface-variant"
+        >
+          <Link href="/privacidade" className="hover:text-primary">
+            Privacidade
+          </Link>
+          <Link href="/termos" className="hover:text-primary">
+            Termos
+          </Link>
+          <Link href="/contato" className="hover:text-primary">
+            Contato
+          </Link>
+        </nav>
+        <p className="text-center text-[0.65rem] text-on-surface-variant/55">
+          © {new Date().getFullYear()} Espaço Lição de Casa. Todos os direitos reservados.
+        </p>
+      </footer>
+    </main>
   );
 }

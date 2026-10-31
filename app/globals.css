@@ -1,26 +1,33 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Tokens do design system "The Academic Atelier" */
+@theme {
+  --color-surface: #fbf9f8;
+  --color-surface-container-low: #f5f3f3;
+  --color-surface-container-high: #eae8e7;
+  --color-surface-container-highest: #e4e2e2;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #1b1c1c;
+  --color-on-surface-variant: #584237;
+  --color-outline-variant: #e0c0b1;
+  --color-primary: #9e4300;
+  --color-primary-container: #f2711c;
+  --color-primary-fixed: #ffdbcb;
+  --color-secondary: #00629f;
+  --color-secondary-container: #5cb1ff;
+  --color-on-secondary: #ffffff;
+  --color-tertiary: #006a65;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* Sombra ambiente: primary a 5%, blur 32px, Y 16px */
+  --shadow-ambient: 0 16px 32px rgba(158, 67, 0, 0.05);
+  --shadow-cta: 0 12px 24px rgba(158, 67, 0, 0.2);
+  --shadow-cta-hover: 0 16px 32px rgba(158, 67, 0, 0.28);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-surface font-sans text-on-surface antialiased;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
