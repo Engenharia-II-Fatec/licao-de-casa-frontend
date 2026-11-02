@@ -94,7 +94,6 @@ export default function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-surface px-5 py-8">
-      {/* Brilho suave de fundo: só transições tonais, sem linhas */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_0%_100%,rgba(242,113,28,0.1),transparent_70%),radial-gradient(50%_40%_at_100%_0%,rgba(92,177,255,0.08),transparent_70%)]"
@@ -109,7 +108,6 @@ export default function LoginPage() {
         </h1>
       </header>
 
-      {/* Card em vidro: surface 80% + blur 12px */}
       <section className="relative w-full max-w-[25rem] rounded-3xl bg-surface/80 px-5 pb-6 pt-7 shadow-ambient backdrop-blur-[12px] sm:px-8 sm:pb-7 sm:pt-9">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
