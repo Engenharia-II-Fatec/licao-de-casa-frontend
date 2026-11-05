@@ -26,7 +26,7 @@ export default async function EditarDisciplina({
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f3f1] p-6 text-neutral-900">
+    <div className="text-neutral-900">
       <div className="mx-auto max-w-3xl space-y-4">
         <nav className="text-xs text-neutral-500">
           <Link href="/disciplinas" className="hover:underline">
@@ -51,6 +51,6 @@ export default async function EditarDisciplina({
 
         <FormularioDisciplina inicial={inicial} textoBotao="Salvar Alterações" />
       </div>
-    </main>
+    </div>
   );
 }

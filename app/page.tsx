@@ -231,7 +231,7 @@ export default function LoginPage() {
           </Link>
         </nav>
         <p className="text-center text-[0.65rem] text-on-surface-variant/55">
-          © {new Date().getFullYear()} Espaço Lição de Casa. Todos os direitos reservados.
+          © 2026 Espaço Lição de Casa. Todos os direitos reservados.
         </p>
       </footer>
     </main>

@@ -31,7 +31,7 @@ export default function ListagemDisciplinas() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f3f1] p-6 text-neutral-900">
+    <div className="text-neutral-900">
       <div className="mx-auto max-w-5xl space-y-6">
         <h1 className="text-xl font-bold">Gestão de Disciplinas</h1>
 
@@ -166,7 +166,7 @@ export default function ListagemDisciplinas() {
           </button>
         </nav>
       </div>
-    </main>
+    </div>
   );
 }
 
