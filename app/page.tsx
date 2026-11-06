@@ -1,7 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 const Icon = ({
   children,
@@ -73,25 +75,177 @@ const inputClass =
 const leadingClass =
   "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/70";
 
-export default function LoginPage() {
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { refreshUser } = useAuth();
+
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setErrorMessage(null);
     setLoading(true);
+
     try {
-      // TODO: integrar com sua API de autenticação
-      await new Promise((r) => setTimeout(r, 800));
-      console.log({ user, password, remember });
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user, password, remember }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setErrorMessage(
+          data.error || "Erro ao realizar login. Por favor, verifique seus dados."
+        );
+        return;
+      }
+
+      await refreshUser();
+      const redirectUrl = searchParams.get("from") || "/planos";
+      router.push(redirectUrl);
+      router.refresh();
+    } catch {
+      setErrorMessage("Erro de conexão com o servidor. Tente novamente.");
     } finally {
       setLoading(false);
     }
   }
 
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      {errorMessage && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-2xl border border-error/20 bg-error-container/40 p-3.5 text-xs font-semibold text-error"
+        >
+          <svg
+            className="size-4 shrink-0 mt-0.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="user" className={labelClass}>
+          E-mail ou Usuário
+        </label>
+        <div className="relative">
+          <span className={leadingClass}>
+            <UserIcon />
+          </span>
+          <input
+            id="user"
+            type="text"
+            autoComplete="username"
+            placeholder="admin ou admin@licao.com"
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+            className={inputClass}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="password" className={labelClass}>
+          Senha
+        </label>
+        <div className="relative">
+          <span className={leadingClass}>
+            <LockIcon />
+          </span>
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="Sua senha secreta"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={inputClass}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-on-surface-variant/70 transition hover:bg-surface-container-high focus-visible:outline-2 focus-visible:outline-primary"
+          >
+            <EyeIcon off={showPassword} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 text-[0.8rem]">
+        <label className="relative inline-flex cursor-pointer items-center gap-2.5 text-on-surface-variant">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="peer absolute size-[1.1rem] opacity-0"
+          />
+          <span className="grid size-[1.1rem] place-items-center rounded-[0.35rem] bg-surface-container-highest text-white transition peer-checked:bg-primary-container peer-checked:[&>svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/45">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-3 opacity-0 transition"
+              aria-hidden="true"
+            >
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+          </span>
+          Lembrar de mim
+        </label>
+        <Link
+          href="/recuperar-senha"
+          className="font-semibold text-secondary hover:underline"
+        >
+          Esqueceu a senha?
+        </Link>
+      </div>
+
+      {/* CTA: gradiente 135° primary → primary-container */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="mt-1 inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-gradient-to-br from-primary to-primary-container text-[0.95rem] font-bold text-white shadow-cta transition hover:shadow-cta-hover active:scale-[0.99] disabled:cursor-progress disabled:opacity-70 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary-fixed"
+      >
+        {loading ? "Entrando..." : "Entrar"}
+        {!loading && <LoginIcon />}
+      </button>
+
+      {/* Dica de demonstração para facilitar avaliação */}
+      <div className="rounded-xl bg-surface-container-lowest/80 p-3 text-center text-[0.75rem] text-on-surface-variant/80 border border-surface-container-highest/60">
+        <span className="font-semibold text-primary">Acesso Administrador:</span>{" "}
+        <span className="font-mono">admin</span> /{" "}
+        <span className="font-mono">admin123</span>
+      </div>
+    </form>
+  );
+}
+
+export default function LoginPage() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-surface px-5 py-8">
       <div
@@ -109,99 +263,9 @@ export default function LoginPage() {
       </header>
 
       <section className="relative w-full max-w-[25rem] rounded-3xl bg-surface/80 px-5 pb-6 pt-7 shadow-ambient backdrop-blur-[12px] sm:px-8 sm:pb-7 sm:pt-9">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="user" className={labelClass}>
-              E-mail ou Usuário
-            </label>
-            <div className="relative">
-              <span className={leadingClass}>
-                <UserIcon />
-              </span>
-              <input
-                id="user"
-                type="text"
-                autoComplete="username"
-                placeholder="Seu nome de usuário"
-                value={user}
-                onChange={(e) => setUser(e.target.value)}
-                className={inputClass}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="password" className={labelClass}>
-              Senha
-            </label>
-            <div className="relative">
-              <span className={leadingClass}>
-                <LockIcon />
-              </span>
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="Sua senha secreta"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={inputClass}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-on-surface-variant/70 transition hover:bg-surface-container-high focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <EyeIcon off={showPassword} />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-4 text-[0.8rem]">
-            <label className="relative inline-flex cursor-pointer items-center gap-2.5 text-on-surface-variant">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="peer absolute size-[1.1rem] opacity-0"
-              />
-              <span className="grid size-[1.1rem] place-items-center rounded-[0.35rem] bg-surface-container-highest text-white transition peer-checked:bg-primary-container peer-checked:[&>svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/45">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="size-3 opacity-0 transition"
-                  aria-hidden="true"
-                >
-                  <path d="M5 12.5l4.5 4.5L19 7.5" />
-                </svg>
-              </span>
-              Lembrar de mim
-            </label>
-            <Link
-              href="/recuperar-senha"
-              className="font-semibold text-secondary hover:underline"
-            >
-              Esqueceu a senha?
-            </Link>
-          </div>
-
-          {/* CTA: gradiente 135° primary → primary-container */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-1 inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-gradient-to-br from-primary to-primary-container text-[0.95rem] font-bold text-white shadow-cta transition hover:shadow-cta-hover active:scale-[0.99] disabled:cursor-progress disabled:opacity-70 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary-fixed"
-          >
-            {loading ? "Entrando..." : "Entrar"}
-            {!loading && <LoginIcon />}
-          </button>
-        </form>
+        <Suspense fallback={<div className="h-48 flex items-center justify-center text-sm text-on-surface-variant">Carregando...</div>}>
+          <LoginForm />
+        </Suspense>
 
         <div className="mt-8 flex flex-col items-center gap-3 text-xs text-on-surface-variant">
           <p>Precisa de ajuda com seu acesso?</p>

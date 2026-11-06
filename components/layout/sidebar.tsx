@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { IconCap, IconClose, IconLogout } from "@/components/ui/icons";
 import { itemAtivo, NAV_ITEMS } from "./nav-config";
 
@@ -10,6 +11,8 @@ const itemBase =
   "flex items-center gap-3 rounded-full px-4 py-3 text-sm font-medium transition duration-150";
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { logout } = useAuth();
+
   return (
     <>
       {/* Overlay (somente mobile) */}
@@ -61,13 +64,17 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         </nav>
 
         <div className="mt-2 pt-4">
-          <Link
-            href="/"
-            className={`${itemBase} text-error hover:bg-error-container`}
+          <button
+            type="button"
+            onClick={async () => {
+              onClose();
+              await logout();
+            }}
+            className={`${itemBase} w-full text-error hover:bg-error-container text-left cursor-pointer`}
           >
             <IconLogout />
             Sair
-          </Link>
+          </button>
         </div>
       </aside>
     </>
@@ -82,38 +89,38 @@ function NavItensComRota({ onClose }: { onClose: () => void }) {
 function NavItens({ pathname, onClose }: { pathname: string; onClose: () => void }) {
   return (
     <>
-          {NAV_ITEMS.map((item) => {
-            const ativo = itemAtivo(pathname, item);
-            const Icon = item.icon;
-            if (!item.implementado) {
-              return (
-                <span
-                  key={item.href}
-                  aria-disabled="true"
-                  className={`${itemBase} cursor-default text-on-surface-variant`}
-                >
-                  <Icon />
-                  {item.label}
-                </span>
-              );
-            }
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                aria-current={ativo ? "page" : undefined}
-                className={`${itemBase} ${
-                  ativo
-                    ? "bg-surface-container-lowest font-bold text-primary-container shadow-sm"
-                    : "text-on-surface-variant hover:bg-surface-container-highest"
-                }`}
-              >
-                <Icon />
-                {item.label}
-              </Link>
-            );
-          })}
+      {NAV_ITEMS.map((item) => {
+        const ativo = itemAtivo(pathname, item);
+        const Icon = item.icon;
+        if (!item.implementado) {
+          return (
+            <span
+              key={item.href}
+              aria-disabled="true"
+              className={`${itemBase} cursor-default text-on-surface-variant`}
+            >
+              <Icon />
+              {item.label}
+            </span>
+          );
+        }
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onClose}
+            aria-current={ativo ? "page" : undefined}
+            className={`${itemBase} ${
+              ativo
+                ? "bg-surface-container-lowest font-bold text-primary-container shadow-sm"
+                : "text-on-surface-variant hover:bg-surface-container-highest"
+            }`}
+          >
+            <Icon />
+            {item.label}
+          </Link>
+        );
+      })}
     </>
   );
 }
