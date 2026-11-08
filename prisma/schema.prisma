@@ -7,6 +7,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// -------------------------------------------------------------
+// Usuários e Autenticação
+// -------------------------------------------------------------
 model User {
   id        String   @id @default(cuid())
   name      String?
@@ -16,4 +19,196 @@ model User {
   role      String   @default("ADMIN")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// Planos de Aulas
+// -------------------------------------------------------------
+model Plano {
+  id             String   @id @default(cuid())
+  nome           String   @unique
+  descricao      String
+  status         String   @default("ATIVO") // ATIVO | INATIVO
+  valorMensal    Float?   // null = "Consultar"
+  aulasIncluidas Int?     // null = "Personalizado"
+  beneficios     String   @default("[]") // JSON string de string[]
+  icone          String   @default("school")
+  capaTipo       String   @default("gradiente") // gradiente | imagem
+  capaDe         String?  // cor inicial do gradiente
+  capaPara       String?  // cor final do gradiente
+  capaDataUrl    String?  // dataUrl ou url da imagem
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  alunos         Aluno[]
+}
+
+// -------------------------------------------------------------
+// Responsáveis Financeiros / Legais
+// -------------------------------------------------------------
+model Responsavel {
+  id           String   @id @default(cuid())
+  name         String
+  role         String   @default("Responsável") // Mãe, Pai, Responsável, Titular da Conta
+  phone        String
+  photo        String?
+  cpf          String?
+  rg           String?
+  email        String?
+  cep          String?
+  address      String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  alunos       Aluno[]
+}
+
+// -------------------------------------------------------------
+// Alunos
+// -------------------------------------------------------------
+model Aluno {
+  id             String             @id
+  name           String
+  initials       String
+  avatarBg       String             @default("bg-[#d0e4ff]")
+  avatarText     String             @default("text-[#00629f]")
+  photo          String?
+  guardian       String
+  guardianRole   String?
+  guardianPhone  String?
+  guardianPhoto  String?
+  responsavelId  String?
+  responsavel    Responsavel?       @relation(fields: [responsavelId], references: [id], onDelete: SetNull)
+  email          String?
+  rg             String?
+  cpf            String?
+  birthDate      String?
+  schoolGrade    String?
+  schoolName     String?
+  cep            String?
+  address        String?
+  number         String?
+  complement     String?
+  neighborhood   String?
+  city           String?
+  state          String?
+  planoId        String?
+  planoRef       Plano?             @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  plan           String             @default("Atelier Total")
+  planPrice      String?
+  planBadgeType  String             @default("orange") // orange | gray
+  status         String             @default("Ativo") // Ativo | Inativo
+  grade          String?
+  shift          String?
+  joinedDate     String?
+  renewalDate    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  paymentHistory RegistroPagamento[]
+  disciplinas    AlunoDisciplina[]
+  agendamentos   Agendamento[]
+}
+
+// -------------------------------------------------------------
+// Histórico de Pagamentos do Aluno
+// -------------------------------------------------------------
+model RegistroPagamento {
+  id          String   @id @default(cuid())
+  alunoId     String
+  aluno       Aluno    @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  description String
+  date        String
+  amount      String
+  status      String   @default("Pendente") // Pago | Pendente
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// Professores
+// -------------------------------------------------------------
+model Professor {
+  id           Int                  @id @default(autoincrement())
+  nome         String
+  especialidade String
+  email        String?
+  telefone     String?
+  foto         String?
+  ativo        Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  disciplinas  DisciplinaProfessor[]
+  agendamentos Agendamento[]
+}
+
+// -------------------------------------------------------------
+// Disciplinas
+// -------------------------------------------------------------
+model Disciplina {
+  id            Int                  @id @default(autoincrement())
+  nome          String
+  area          String               // Exatas, Linguagens, Humanas, Idiomas, Ciências Naturais, Artes & Cultura
+  descricao     String
+  ementa        String?
+  cargaHoraria  Int                  // horas semanais
+  alunosQtd     Int                  @default(0)
+  professorNome String?              // nome exibido na listagem
+  ativa         Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  professores   DisciplinaProfessor[]
+  alunos        AlunoDisciplina[]
+  agendamentos  Agendamento[]
+}
+
+// -------------------------------------------------------------
+// Relação N:N - Disciplina e Professor
+// -------------------------------------------------------------
+model DisciplinaProfessor {
+  disciplinaId Int
+  professorId  Int
+  disciplina   Disciplina @relation(fields: [disciplinaId], references: [id], onDelete: Cascade)
+  professor    Professor  @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([disciplinaId, professorId])
+}
+
+// -------------------------------------------------------------
+// Relação N:N - Aluno e Disciplina (Matrícula)
+// -------------------------------------------------------------
+model AlunoDisciplina {
+  alunoId      String
+  disciplinaId Int
+  aluno        Aluno      @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  disciplina   Disciplina @relation(fields: [disciplinaId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([alunoId, disciplinaId])
+}
+
+// -------------------------------------------------------------
+// Agendamentos de Aulas / Atendimentos
+// -------------------------------------------------------------
+model Agendamento {
+  id           String      @id @default(cuid())
+  alunoId      String?
+  aluno        Aluno?      @relation(fields: [alunoId], references: [id], onDelete: SetNull)
+  professorId  Int?
+  professor    Professor?  @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  disciplinaId Int?
+  disciplina   Disciplina? @relation(fields: [disciplinaId], references: [id], onDelete: SetNull)
+  dataHora     DateTime
+  status       String      @default("AGENDADO") // AGENDADO | CONCLUIDO | CANCELADO
+  observacoes  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }

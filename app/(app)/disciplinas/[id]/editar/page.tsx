@@ -71,16 +71,31 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
 
   const disponiveis = PROFESSORES.filter((p) => !professores.includes(p.id));
 
-  function salvar(e: React.FormEvent) {
+  async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!nome.trim()) {
       setErro("Informe o nome da disciplina.");
       return;
     }
     setErro("");
-    // Simulação: quando o back-end existir, a chamada à API entra aqui.
-    alert("Alterações salvas com sucesso (simulação).");
-    router.push("/disciplinas");
+    try {
+      const res = await fetch(`/api/disciplinas/${disciplina.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: nome.trim(),
+          descricao: descricao.trim(),
+          professores,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao salvar disciplina.");
+      }
+      router.push("/disciplinas");
+    } catch {
+      setErro("Não foi possível salvar as alterações no banco de dados.");
+    }
   }
 
   return (

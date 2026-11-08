@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AREAS, DISCIPLINAS, ESTILO_AREA, type Area } from "./_components/dados";
 
 const POR_PAGINA = 6;
@@ -11,6 +11,20 @@ export default function ListagemDisciplinas() {
   const [busca, setBusca] = useState("");
   const [area, setArea] = useState<Area | "todas">("todas");
   const [pagina, setPagina] = useState(1);
+
+  useEffect(() => {
+    fetch("/api/disciplinas")
+      .then((res) => {
+        if (!res.ok) throw new Error("Erro ao carregar");
+        return res.json();
+      })
+      .then((dados) => {
+        if (Array.isArray(dados) && dados.length > 0) {
+          setLista(dados);
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   const filtradas = lista.filter(
     (d) =>
@@ -24,8 +38,13 @@ export default function ListagemDisciplinas() {
     paginaAtual * POR_PAGINA
   );
 
-  function remover(id: number) {
+  async function remover(id: number) {
     if (confirm("Deseja realmente excluir esta disciplina?")) {
+      try {
+        await fetch(`/api/disciplinas/${id}`, { method: "DELETE" });
+      } catch {
+        // ignora erro de rede e atualiza estado local
+      }
       setLista((atual) => atual.filter((d) => d.id !== id));
     }
   }

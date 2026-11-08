@@ -1,4 +1,4 @@
-import { PlanosLocalStorageService } from "./planos.local-storage";
+import { PlanosApiService } from "./planos.api";
 import type { PlanosService } from "./planos.service";
 
 export {
@@ -8,7 +8,6 @@ export {
 } from "./planos.service";
 
 /**
- * ÚNICO ponto de troca da fonte de dados.
- * Quando a API REST estiver pronta: `new PlanosApiService()`.
+ * Ponto de exportação dos serviços integrados à API (banco de dados via Prisma).
  */
-export const planosService: PlanosService = new PlanosLocalStorageService();
+export const planosService: PlanosService = new PlanosApiService();

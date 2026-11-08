@@ -26,13 +26,15 @@ const VAZIO: DadosFormulario = {
 type Props = {
   inicial?: DadosFormulario;
   textoBotao: string;
+  disciplinaId?: number;
 };
 
-export default function FormularioDisciplina({ inicial = VAZIO, textoBotao }: Props) {
+export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disciplinaId }: Props) {
   const router = useRouter();
   const [dados, setDados] = useState<DadosFormulario>(inicial);
   const [busca, setBusca] = useState("");
   const [erros, setErros] = useState<Record<string, string>>({});
+  const [salvando, setSalvando] = useState(false);
 
   function atualizar<K extends keyof DadosFormulario>(campo: K, valor: DadosFormulario[K]) {
     setDados((atual) => ({ ...atual, [campo]: valor }));
@@ -46,7 +48,7 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao }: Pr
       )
     : [];
 
-  function enviar(e: React.FormEvent) {
+  async function enviar(e: React.FormEvent) {
     e.preventDefault();
     const novos: Record<string, string> = {};
     if (!dados.nome.trim()) novos.nome = "Informe o nome da disciplina.";
@@ -56,9 +58,26 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao }: Pr
     setErros(novos);
     if (Object.keys(novos).length > 0) return;
 
-    // Simulação: quando o back-end existir, a chamada à API entra aqui.
-    alert("Disciplina salva com sucesso (simulação).");
-    router.push("/disciplinas");
+    setSalvando(true);
+    try {
+      const url = disciplinaId ? `/api/disciplinas/${disciplinaId}` : "/api/disciplinas";
+      const method = disciplinaId ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dados),
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao salvar disciplina.");
+      }
+
+      router.push("/disciplinas");
+    } catch {
+      alert("Não foi possível salvar a disciplina no banco de dados.");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -230,9 +249,10 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao }: Pr
         </Link>
         <button
           type="submit"
-          className="rounded-full bg-gradient-to-r from-[#a8501a] to-[#ea7a1a] px-6 py-3 text-sm font-bold text-white shadow"
+          disabled={salvando}
+          className="rounded-full bg-gradient-to-r from-[#a8501a] to-[#ea7a1a] px-6 py-3 text-sm font-bold text-white shadow disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
         >
-          {textoBotao}
+          {salvando ? "Salvando..." : textoBotao}
         </button>
       </div>
     </form>
