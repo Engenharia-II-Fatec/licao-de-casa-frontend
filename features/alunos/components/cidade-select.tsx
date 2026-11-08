@@ -14,7 +14,13 @@ type CidadeSelectProps = {
 /** Lista de cidades da UF escolhida, com busca. Se o IBGE falhar, vira campo de texto. */
 export function CidadeSelect({ uf, value, onChange }: CidadeSelectProps) {
   const { cidades, carregando, erro } = useCidades(uf);
-  const options = useMemo(() => cidades.map((c) => ({ value: c, label: c })), [cidades]);
+  const options = useMemo(() => {
+    const list = cidades.map((c) => ({ value: c, label: c }));
+    if (value && !cidades.some((c) => c.toLowerCase() === value.toLowerCase())) {
+      return [{ value, label: value }, ...list];
+    }
+    return list;
+  }, [cidades, value]);
 
   if (erro) {
     return (

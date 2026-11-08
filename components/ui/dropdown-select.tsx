@@ -127,7 +127,7 @@ export function DropdownSelect({
     handleListKeys(e);
   };
 
-  const buttonText = loading ? "Carregando..." : selected ? selected.label : placeholder;
+  const buttonText = selected ? selected.label : loading ? "Carregando..." : placeholder;
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
@@ -143,7 +143,7 @@ export function DropdownSelect({
         className={`w-full flex items-center justify-between gap-1 pl-4 pr-2 py-3.5 bg-[#f5f3f3] rounded-xl text-sm font-medium text-left outline-none transition-all focus:ring-2 focus:ring-[#9e4300]/25 disabled:cursor-not-allowed disabled:opacity-60 ${
           disabled ? "" : "cursor-pointer"
         } ${open ? "ring-2 ring-[#9e4300]/25" : ""} ${
-          selected && !loading ? "text-[#1b1c1c]" : "text-[#584237]/40"
+          selected ? "text-[#1b1c1c]" : "text-[#584237]/40"
         }`}
       >
         <span className="truncate">{buttonText}</span>

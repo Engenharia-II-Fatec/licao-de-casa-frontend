@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, type FormEvent } from "react";
+import { useCallback, useRef, useState, useMemo, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { useToast } from "@/components/ui/toast";
 import { OPCOES_UF } from "../constants";
 import { mascararCep, mascararCpf, mascararData, mascararRg, mascararTelefone } from "@/lib/masks";
+import { consultarCep } from "@/lib/viacep";
 import { useCadastroAluno } from "../cadastro-context";
 import { useResponsaveis } from "../hooks";
 import { alunosService } from "../services";
@@ -20,7 +21,74 @@ export function AlunoNovo() {
   const { form: createForm, setForm: setCreateForm, limpar } = useCadastroAluno();
   const { responsaveis: responsibles } = useResponsaveis();
 
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const ultimoCepBuscadoRef = useRef("");
+  const numeroInputRef = useRef<HTMLInputElement>(null);
+
   const voltarParaLista = () => router.push("/alunos");
+
+  const buscarEnderecoPorCep = useCallback(
+    async (cepValor: string, forcar = false) => {
+      const digitos = cepValor.replace(/\D/g, "");
+      if (digitos.length !== 8) return;
+      if (!forcar && ultimoCepBuscadoRef.current === digitos) return;
+
+      ultimoCepBuscadoRef.current = digitos;
+      setBuscandoCep(true);
+
+      try {
+        const resultado = await consultarCep(digitos);
+        if (!resultado) {
+          toast.error("CEP não encontrado. Por favor, confira os números digitados.");
+          return;
+        }
+
+        setCreateForm((prev) => ({
+          ...prev,
+          cep: mascararCep(resultado.cep),
+          address: resultado.address || prev.address,
+          neighborhood: resultado.neighborhood || prev.neighborhood,
+          complement: resultado.complement || prev.complement,
+          state: resultado.state || prev.state,
+          city: resultado.city || prev.city,
+        }));
+
+        toast.success("Endereço preenchido automaticamente pelo CEP!");
+        setTimeout(() => {
+          numeroInputRef.current?.focus();
+        }, 50);
+      } catch {
+        toast.error("Não foi possível consultar o CEP no ViaCEP. Preencha os campos manualmente.");
+      } finally {
+        setBuscandoCep(false);
+      }
+    },
+    [setCreateForm, toast]
+  );
+
+  const handleCepChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const novoCep = mascararCep(e.target.value);
+    setCreateForm((prev) => ({ ...prev, cep: novoCep }));
+
+    const digitos = novoCep.replace(/\D/g, "");
+    if (digitos.length === 8) {
+      buscarEnderecoPorCep(novoCep);
+    }
+  };
+
+  const handleCepBlur = () => {
+    const digitos = createForm.cep.replace(/\D/g, "");
+    if (digitos.length === 8 && ultimoCepBuscadoRef.current !== digitos) {
+      buscarEnderecoPorCep(createForm.cep);
+    }
+  };
+
+  const handleCepKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarEnderecoPorCep(createForm.cep, true);
+    }
+  };
 
   // Responsável selecionado no cadastro (sem seleção explícita, usa o primeiro da lista).
   const selectedResponsible = useMemo(() => {
@@ -316,15 +384,43 @@ export function AlunoNovo() {
             {/* CEP e Logradouro */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
               <div className="sm:col-span-4">
-                <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">CEP</label>
-                <input
-                  type="text"
-                  value={createForm.cep}
-                  inputMode="numeric"
-                  onChange={(e) => setCreateForm({ ...createForm, cep: mascararCep(e.target.value) })}
-                  placeholder="00000-000"
-                  className="w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-[#1b1c1c]">CEP</label>
+                  {buscandoCep && (
+                    <span className="text-[11px] font-bold text-[#c2410c] animate-pulse">
+                      Buscando...
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={createForm.cep}
+                    inputMode="numeric"
+                    maxLength={9}
+                    onChange={handleCepChange}
+                    onBlur={handleCepBlur}
+                    onKeyDown={handleCepKeyDown}
+                    placeholder="00000-000"
+                    className="w-full pl-4 pr-11 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={buscandoCep}
+                    onClick={() => buscarEnderecoPorCep(createForm.cep, true)}
+                    title={buscandoCep ? "Consultando CEP no ViaCEP..." : "Buscar endereço pelo CEP"}
+                    aria-label="Buscar endereço pelo CEP"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#783100] hover:text-[#c2410c] hover:bg-[#ffdbcb]/60 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <span
+                      className={`material-symbols-outlined text-lg leading-none ${
+                        buscandoCep ? "animate-spin text-[#c2410c]" : ""
+                      }`}
+                    >
+                      {buscandoCep ? "progress_activity" : "search"}
+                    </span>
+                  </button>
+                </div>
               </div>
               <div className="sm:col-span-8">
                 <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">
@@ -349,6 +445,7 @@ export function AlunoNovo() {
                   Número
                 </label>
                 <input
+                  ref={numeroInputRef}
                   type="text"
                   value={createForm.number}
                   onChange={(e) =>

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { useToast } from "@/components/ui/toast";
 import { mascararCep, mascararCpf, mascararEmail, mascararRg, mascararTelefone } from "@/lib/masks";
+import { consultarCep } from "@/lib/viacep";
 import { useCadastroAluno } from "../cadastro-context";
 import { CADASTRO_RESPONSAVEL_INICIAL, OPCOES_UF } from "../constants";
 import { responsaveisService } from "../services";
@@ -18,8 +19,74 @@ export function ResponsavelNovo() {
   const showToast = toast.success;
   const { setForm: setCreateForm } = useCadastroAluno();
   const [newRespForm, setNewRespForm] = useState(CADASTRO_RESPONSAVEL_INICIAL);
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const ultimoCepBuscadoRef = useRef("");
+  const numeroInputRef = useRef<HTMLInputElement>(null);
 
   const voltar = () => router.push("/alunos/novo");
+
+  const buscarEnderecoPorCep = useCallback(
+    async (cepValor: string, forcar = false) => {
+      const digitos = cepValor.replace(/\D/g, "");
+      if (digitos.length !== 8) return;
+      if (!forcar && ultimoCepBuscadoRef.current === digitos) return;
+
+      ultimoCepBuscadoRef.current = digitos;
+      setBuscandoCep(true);
+
+      try {
+        const resultado = await consultarCep(digitos);
+        if (!resultado) {
+          toast.error("CEP não encontrado. Por favor, confira os números digitados.");
+          return;
+        }
+
+        setNewRespForm((prev) => ({
+          ...prev,
+          cep: mascararCep(resultado.cep),
+          address: resultado.address || prev.address,
+          neighborhood: resultado.neighborhood || prev.neighborhood,
+          complement: resultado.complement || prev.complement,
+          state: resultado.state || prev.state,
+          city: resultado.city || prev.city,
+        }));
+
+        toast.success("Endereço preenchido automaticamente pelo CEP!");
+        setTimeout(() => {
+          numeroInputRef.current?.focus();
+        }, 50);
+      } catch {
+        toast.error("Não foi possível consultar o CEP no ViaCEP. Preencha os campos manualmente.");
+      } finally {
+        setBuscandoCep(false);
+      }
+    },
+    [toast]
+  );
+
+  const handleCepChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const novoCep = mascararCep(e.target.value);
+    setNewRespForm((prev) => ({ ...prev, cep: novoCep }));
+
+    const digitos = novoCep.replace(/\D/g, "");
+    if (digitos.length === 8) {
+      buscarEnderecoPorCep(novoCep);
+    }
+  };
+
+  const handleCepBlur = () => {
+    const digitos = newRespForm.cep.replace(/\D/g, "");
+    if (digitos.length === 8 && ultimoCepBuscadoRef.current !== digitos) {
+      buscarEnderecoPorCep(newRespForm.cep);
+    }
+  };
+
+  const handleCepKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarEnderecoPorCep(newRespForm.cep, true);
+    }
+  };
 
   const handleSaveResponsibleCadastro = async (e: FormEvent) => {
     e.preventDefault();
@@ -212,22 +279,41 @@ export function ResponsavelNovo() {
                     {/* CEP e Logradouro */}
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
                       <div className="sm:col-span-5">
-                        <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">CEP</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-bold text-[#1b1c1c]">CEP</label>
+                          {buscandoCep && (
+                            <span className="text-[11px] font-bold text-[#9e4300] animate-pulse">
+                              Buscando...
+                            </span>
+                          )}
+                        </div>
                         <div className="relative">
                           <input
                             type="text"
                             value={newRespForm.cep}
-                            onChange={(e) => setNewRespForm({ ...newRespForm, cep: mascararCep(e.target.value) })}
+                            inputMode="numeric"
+                            maxLength={9}
+                            onChange={handleCepChange}
+                            onBlur={handleCepBlur}
+                            onKeyDown={handleCepKeyDown}
                             placeholder="00000-000"
-                            className="w-full pl-4 pr-10 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#9e4300]/25 outline-none"
+                            className="w-full pl-4 pr-11 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#9e4300]/25 outline-none"
                           />
                           <button
                             type="button"
-                            onClick={() => showToast('Buscando CEP...')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#783100] hover:text-[#9e4300] cursor-pointer"
-                            title="Buscar CEP"
+                            disabled={buscandoCep}
+                            onClick={() => buscarEnderecoPorCep(newRespForm.cep, true)}
+                            title={buscandoCep ? "Consultando CEP no ViaCEP..." : "Buscar endereço pelo CEP"}
+                            aria-label="Buscar endereço pelo CEP"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-[#783100] hover:text-[#9e4300] hover:bg-[#ffdbcb]/60 transition-colors cursor-pointer disabled:cursor-not-allowed"
                           >
-                            <span className="material-symbols-outlined text-xl">search</span>
+                            <span
+                              className={`material-symbols-outlined text-lg leading-none ${
+                                buscandoCep ? "animate-spin text-[#9e4300]" : ""
+                              }`}
+                            >
+                              {buscandoCep ? "progress_activity" : "search"}
+                            </span>
                           </button>
                         </div>
                       </div>
@@ -253,6 +339,7 @@ export function ResponsavelNovo() {
                       <div>
                         <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">Número</label>
                         <input
+                          ref={numeroInputRef}
                           type="text"
                           value={newRespForm.number}
                           onChange={(e) =>
