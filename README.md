@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎓 Sistema Espaço Lição de Casa
 
-## Getting Started
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Projeto Acadêmico](https://img.shields.io/badge/projeto-TCC-blue)
+![Engenharia de Software](https://img.shields.io/badge/Engenharia%20de%20Software-II-green)
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 📌 Sobre o Projeto
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O **Sistema Espaço Lição de Casa** é uma solução de gestão desenvolvida como projeto de TCC, com foco na digitalização e integração dos processos de uma escola de reforço escolar.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+A aplicação visa resolver problemas operacionais enfrentados pela instituição, como:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Falta de integração entre sistemas  
+- Uso de registros físicos e planilhas isoladas  
+- Dificuldade na gestão de agenda e aulas  
+- Controle financeiro descentralizado  
 
-## Learn More
+💡 Nosso objetivo é criar um **sistema centralizado, eficiente e intuitivo**, que automatize processos e melhore a tomada de decisão.
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## 🎯 Objetivos do Sistema
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- 📅 Centralizar o **agendamento de aulas**
+- 👨‍🎓 Gerenciar **cadastro de alunos e responsáveis**
+- 👩‍🏫 Controlar **disponibilidade de professores**
+- 💰 Organizar o **faturamento e despesas**
+- 📊 Gerar **relatórios e dashboards**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 👥 Personas do Sistema
+[Link para as personas do sistema](https://github.com/Engenharia-II-Fatec/TG/tree/main/PERSONAS)
+
+O sistema foi pensado para atender diferentes perfis de usuários:
+
+### 👨‍🎓 Aluno dependente
+- Participa das aulas de reforço
+- Depende de uma agenda organizada
+- Necessita acompanhamento do desempenho
+
+### 👨‍🎓 Aluno independente
+- Participa das aulas de reforço
+- Depende de uma agenda organizada
+- Realiza os próprios pagamentos
+- Acompanha a própria evolução
+
+### 👨‍👩‍👧 Responsável
+- Realiza pagamentos
+- Acompanha evolução do aluno dependente
+
+### 👩‍🏫 Professor
+- Define disponibilidade de horários
+- Registra aulas ministradas
+- Pode agendar, editar e cancelar aulas quando necessário
+
+### 🧑‍💼 Secretária
+- Realiza cadastros
+- Agenda, edita e cancela aulas
+- Faz atendimento ao cliente
+- Gerencia comunicação com alunos/responsáveis
+
+### 🧑‍💻 Administrador
+- Gerencia o sistema como um todo
+- Acompanha faturamento
+- Analisa relatórios e indicadores
+- Toma decisões estratégicas
+
+---
+
+## ⚠️ Principais Problemas Identificados
+
+### 📅 Agendamento
+- Falta de integração entre ferramentas
+- Comunicação via WhatsApp gera perda de informações
+- Dificuldade para encaixe de horários
+
+### 🧾 Cadastro
+- Uso de fichas físicas
+- Consulta lenta e ineficiente
+- Dados descentralizados
+
+### 💬 Atendimento
+- Dependência de atendimento manual
+- Fluxos confusos entre canais (Instagram → WhatsApp)
+
+### 💰 Financeiro
+- Controle feito em múltiplas planilhas
+- Falta de visão clara de lucro/prejuízo
+- Dificuldade na gestão de pagamentos
+
+
+## 🚀 Funcionalidades Principais
+
+[Requisitos Funcionais](https://github.com/Engenharia-II-Fatec/TG/blob/main/Requisitos_funcionais.md)
+- ✅ Cadastro de alunos e responsáveis
+- ✅ Cadastro de professores
+- ✅ Cadastro de diciplina
+- ✅ Cadastro de planos de aula   
+- ✅ Gestão de disponibilidade dos professores  
+- ✅ Agenda integrada de aulas  
+- ✅ Agendamento de aulas pelos professores
+- ✅ Agendamento de aulas pelo aluno ou responsável
+- ✅ Notificações
+- ✅ Registro de aulas ministradas
+- ✅ Controle financeiro (receitas e despesas)  
+- ✅ Relatórios e dashboards
+
+---
+
+## 🧱 Estrutura do Sistema (Visão Geral)
+
+O sistema será dividido em módulos:
+
+- 📌 **Módulo de Agendamento**
+- 📌 **Módulo de Cadastro**
+- 📌 **Módulo Financeiro**
+- 📌 **Módulo de Relatórios**
+
+---
+
+## 📊 Diferenciais do Projeto
+
+- 🔄 Integração total dos processos  
+- 📱 Possibilidade de automação via chatbot  
+- 📈 Dashboards gerenciais  
+- 🧩 Sistema escalável  
+- 🎯 Foco na experiência do usuário  
+
+---
+
+
+## 💻Protótipo
+
+[Protótipo](https://stitch.withgoogle.com/projects/9474755268670349591) desenvolvido em conjunto no stitch
+
+---
+
+## 👨‍💻 Equipe
+
+- [João Roberto Meirinho Nunes](https://github.com/JoaoMeirinho)
+- [Maria Fernanda Machado](https://github.com/mafemachado)  
+- [Mateus Marcondes Tognoli](https://github.com/mateusmtognoli) 
+- [Thaís Duarte De Souza](https://github.com/thatais)
+- [Carolina Campos Leme De Barros](https://github.com/carolcamposbarros)
+
+---
+
+## 📌 Status do Projeto
+
+🚧 Em desenvolvimento — fase de levantamento de requisitos e modelagem.
+
+---
+
+## 📄 Licença
+
+Este projeto é acadêmico e de uso educacional.
