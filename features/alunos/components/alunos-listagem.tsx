@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/empty-state";
+import { baixarCsv } from "@/lib/csv";
 import { FILTRO_PLANO_TODOS } from "../constants";
 import { useAlunos } from "../hooks";
 import type { Aluno, FiltroStatusAluno } from "../types";
@@ -68,8 +70,34 @@ export function AlunosListagem() {
   const alunosDaPagina = filteredStudents.slice(inicio, inicio + ALUNOS_POR_PAGINA);
   const botoesPagina = gerarBotoesPagina(paginaAtual, totalPaginas);
 
+  const exportarAlunos = () =>
+    baixarCsv(
+      "alunos",
+      ["Matrícula", "Nome", "Responsável financeiro", "Telefone", "E-mail", "Plano", "Valor", "Status"],
+      filteredStudents.map((a) => [
+        a.id,
+        a.name,
+        a.guardian,
+        a.guardianPhone ?? "",
+        a.email ?? "",
+        a.plan,
+        a.planPrice ?? "",
+        a.status,
+      ]),
+    );
+
   // Abre o modal de detalhes: "titular" (aluno é o próprio responsável) ou "dependente".
   const handleStudentNameClick = (student: Aluno) => setStudentDetails({ ...student });
+
+  // "/alunos?aluno=<id>" reabre os detalhes desse aluno (ex.: ao voltar do perfil do responsável).
+  const router = useRouter();
+  const alunoDoLink = useSearchParams().get("aluno");
+  const detalhesAbertos =
+    studentDetails ?? (alunoDoLink ? alunos.find((a) => a.id === alunoDoLink) ?? null : null);
+  const fecharDetalhes = () => {
+    setStudentDetails(null);
+    if (alunoDoLink) router.replace("/alunos", { scroll: false });
+  };
 
   return (
     <>
@@ -84,6 +112,16 @@ export function AlunosListagem() {
                         Gerencie os estudantes e seus planos educacionais.
                       </p>
                     </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={exportarAlunos}
+                      disabled={carregando || filteredStudents.length === 0}
+                      className="flex items-center gap-2 rounded-full bg-white px-5 py-3.5 sm:py-4 text-sm font-bold text-[#1b1c1c] shadow-sm border border-[#f0eded] hover:bg-[#f5f3f3] transition disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-xl">download</span>
+                      Exportar
+                    </button>
                     <Link
         href="/alunos/novo"
         className="bg-gradient-to-r from-[#9e4300] to-[#f2711c] text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-full font-bold shadow-xl shadow-[#9e4300]/25 flex items-center justify-center gap-2.5 hover:translate-y-[-2px] hover:shadow-2xl hover:shadow-[#f2711c]/30 transition-all active:scale-95 cursor-pointer"
@@ -91,6 +129,7 @@ export function AlunosListagem() {
                       <span className="material-symbols-outlined text-xl sm:text-2xl">person_add</span>
                       <span>Novo Aluno</span>
       </Link>
+                    </div>
                   </div>
 
                   {/* Search & Filters */}
@@ -407,19 +446,19 @@ export function AlunosListagem() {
                   </div>
                 </div>
 
-      {studentDetails &&
-        (ehTitular(studentDetails) ? (
+      {detalhesAbertos &&
+        (ehTitular(detalhesAbertos) ? (
           <AlunoTitularDialog
-            key={studentDetails.id}
-            aluno={studentDetails}
-            onClose={() => setStudentDetails(null)}
+            key={detalhesAbertos.id}
+            aluno={detalhesAbertos}
+            onClose={fecharDetalhes}
             onSaved={recarregar}
           />
         ) : (
           <AlunoDependenteDialog
-            key={studentDetails.id}
-            aluno={studentDetails}
-            onClose={() => setStudentDetails(null)}
+            key={detalhesAbertos.id}
+            aluno={detalhesAbertos}
+            onClose={fecharDetalhes}
             onSaved={recarregar}
           />
         ))}

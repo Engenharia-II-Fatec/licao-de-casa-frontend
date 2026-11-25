@@ -16,9 +16,9 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 | 5 | Cadastro de Aluno | ✅ `alunos/novo` | ✅ `POST /api/alunos` | Pronta |
 | 6 | Listagem de Alunos | ✅ `alunos` | ✅ `GET /api/alunos` | Pronta |
 | 7 | Detalhes/Edição — Aluno Independente | ✅ `aluno-titular-dialog` + `aluno-editar-dialog` | ✅ `PUT/DELETE /api/alunos/[id]` | Pronta |
-| 8 | Detalhes/Edição — Aluno Dependente | 🟡 `aluno-dependente-dialog` | ✅ | "Ver Perfil Financeiro" deveria abrir o responsável (Fig. 10), que não existe |
-| 9 | Listagem de Responsáveis | ❌ | 🟡 só `GET /api/responsaveis` | Falta a tela |
-| 10 | Detalhes/Edição de Responsável | ❌ | ❌ falta `/api/responsaveis/[id]` | Falta tudo |
+| 8 | Detalhes/Edição — Aluno Dependente | ✅ `aluno-dependente-dialog` | ✅ | Pronta — "Perfil Financeiro via Responsável" leva ao perfil do responsável |
+| 9 | Listagem de Responsáveis | ✅ `responsaveis` | ✅ `GET /api/responsaveis` | Pronta |
+| 10 | Detalhes/Edição de Responsável | ✅ `responsaveis/[id]` | ✅ `GET/PUT/DELETE /api/responsaveis/[id]` | Pronta |
 | 11 | Cadastro de Professor | ❌ | ❌ falta `POST /api/professores` | Falta tudo |
 | 12 | Listagem de Professores | ❌ | 🟡 só `GET /api/professores` | Falta a tela |
 | 13 | Detalhes/Edição de Professor | ❌ | ❌ falta `/api/professores/[id]` | Falta tudo |
@@ -29,7 +29,7 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 | 18 | Listagem de Planos de Aula | ✅ `planos` | ✅ | Pronta |
 | 19 | Detalhes/Edição de Plano de Aula | ✅ `planos/[id]`, `planos/[id]/editar` | ✅ | Pronta |
 
-**Resumo:** 11 de 17 telas prontas, 3 parciais (8, 15, 16) e 6 por fazer: Responsáveis (9, 10) e Professores (11, 12, 13).
+**Resumo:** 14 de 17 telas prontas, 2 parciais (15, 16) e 3 por fazer: Professores (11, 12, 13).
 
 ---
 
@@ -42,11 +42,13 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 ## 1. Front-end
 
 ### Responsáveis (Fig. 9 e 10) — branch `feature/responsaveis`
-- [ ] Criar `app/(app)/responsaveis/page.tsx` — listagem com busca, filtros e paginação (seguir `alunos-listagem.tsx`).
-- [ ] Criar tela de detalhes/edição do responsável (`responsaveis/[id]`), com a lista de dependentes e o histórico financeiro.
-- [ ] Adicionar `buscarPorId`, `atualizar` e `excluir` em `ResponsaveisService` (interface + `alunos.api.ts`), ou mover para `features/responsaveis/`.
-- [ ] Ligar o botão "Ver Perfil Financeiro" do aluno dependente (Fig. 8) à tela do responsável.
-- [ ] `nav-config.ts`: `Responsáveis` → `implementado: true`.
+- [x] Criar `app/(app)/responsaveis/page.tsx` — listagem com busca, filtros e paginação (seguir `alunos-listagem.tsx`).
+- [x] Criar tela de detalhes/edição do responsável (`responsaveis/[id]`), com a lista de dependentes e o histórico financeiro.
+- [x] Adicionar `buscarPorId`, `atualizar` e `excluir` em `ResponsaveisService` (interface + `alunos.api.ts`), ou mover para `features/responsaveis/`.
+- [x] Ligar o botão "Ver Perfil Financeiro" do aluno dependente (Fig. 8) à tela do responsável.
+- [x] `nav-config.ts`: `Responsáveis` → `implementado: true`.
+- [x] "Vincular novo aluno" no perfil do responsável: lista os alunos cadastrados (`POST /api/responsaveis/[id]/alunos`) ou abre o cadastro de aluno com o responsável já selecionado (`/alunos/novo?responsavel=<id>`).
+- [x] Base de Alunos: botão Exportar (CSV); Novo Aluno: rodapé Cancelar/Finalizar Cadastro.
 
 ### Professores (Fig. 11, 12 e 13) — branch `feature/professores`
 - [ ] Criar `features/professores/` (types, service, `professores.api.ts`, hooks, components), no padrão de `features/planos`.
@@ -61,15 +63,21 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 - [ ] Exclusão: só remover da tela se a API responder OK; mostrar toast de erro.
 - [ ] Criar `features/disciplinas/` com service, como os outros módulos (opcional, mas deixa o padrão igual).
 
+### Planos de Aula (Fig. 19) — branch `fix/planos-navegacao`
+- [ ] Botão "Voltar" da edição (`planos/[id]/editar`) volta para os detalhes do plano em vez da listagem → corrigir para levar a `/planos`.
+
 ### Geral
+- [ ] Verificar redundância entre as telas de detalhes e de edição (alunos, responsáveis, disciplinas, planos, professores): campos e ações repetidos, e se vale unificar em uma tela só com modo de edição.
+- [ ] Verificar a padronização dos botões em todas as telas: mesmo componente (`components/ui/button`), variantes (primário/secundário/perigo), textos ("Salvar", "Cancelar", "Voltar", "Excluir"), ícones, tamanhos e posição (ex.: ações do formulário sempre no rodapé, à direita).
 - [ ] Remover `mock-data.ts` e as implementações de localStorage que não são mais usadas (ou deixar só para testes).
 - [ ] Conferir cada tela com o protótipo do Stitch (campos, textos, cores) e com o `docs/design-system.md`.
 - [ ] Testar responsividade (celular/tablet) das telas 3–19.
 - [ ] `npm run lint` e `npm run build` sem erros antes de cada PR.
 
 ## 2. Back-end (rotas de API em `app/api`)
-- [ ] **Segurança:** as rotas `/api/alunos`, `/api/planos`, `/api/disciplinas`, `/api/responsaveis`, `/api/professores` **não exigem login** (o `middleware.ts` só protege as páginas). Validar a sessão (`getSession()`) nelas ou incluir `/api` no middleware.
-- [ ] `GET/PUT/DELETE /api/responsaveis/[id]`.
+- [ ] **Segurança:** as rotas `/api/alunos`, `/api/planos`, `/api/disciplinas`, `/api/professores` **não exigem login** (as de `/api/responsaveis` já exigem, via `exigirSessao()` de `lib/api-auth.ts`) (o `middleware.ts` só protege as páginas). Validar a sessão (`getSession()`) nelas ou incluir `/api` no middleware.
+- [x] `PATCH /api/responsaveis/[id]` para inativar/reativar (coluna nova `Responsavel.ativo`, migration `responsavel_ativo` — rode `npx prisma migrate dev` depois do pull).
+- [x] `GET/PUT/DELETE /api/responsaveis/[id]` (com checagem de login; o PUT atualiza nome/telefone/foto nos alunos vinculados; o DELETE bloqueia com 409 se houver dependentes).
 - [ ] `POST /api/professores` e `GET/PUT/DELETE /api/professores/[id]` (com vínculo de disciplinas).
 - [ ] Validação dos dados no servidor (campos obrigatórios, CPF, e-mail, CEP) e mensagens de erro padronizadas.
 - [ ] Tratar exclusões com vínculo (ex.: excluir responsável com dependentes → bloquear ou desvincular, conforme a regra decidida para o banco).

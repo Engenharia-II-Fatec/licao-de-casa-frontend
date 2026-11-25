@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useRef, useState, useMemo, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { useToast } from "@/components/ui/toast";
@@ -25,7 +25,14 @@ export function AlunoNovo() {
   const ultimoCepBuscadoRef = useRef("");
   const numeroInputRef = useRef<HTMLInputElement>(null);
 
-  const voltarParaLista = () => router.push("/alunos");
+  // "/alunos/novo?responsavel=<id>": cadastro aberto pelo "Vincular aluno" do perfil do responsável.
+  const responsavelDoLink = useSearchParams().get("responsavel");
+  const voltarParaLista = () =>
+    router.push(responsavelDoLink ? `/responsaveis/${encodeURIComponent(responsavelDoLink)}` : "/alunos");
+  const cancelarCadastro = () => {
+    limpar();
+    voltarParaLista();
+  };
 
   const buscarEnderecoPorCep = useCallback(
     async (cepValor: string, forcar = false) => {
@@ -91,12 +98,14 @@ export function AlunoNovo() {
   };
 
   // Responsável selecionado no cadastro (sem seleção explícita, usa o primeiro da lista).
+  // A escolha feita na tela vale mais que o responsável vindo do link.
   const selectedResponsible = useMemo(() => {
-    if (!createForm.selectedResponsibleId) {
+    const id = createForm.selectedResponsibleId || responsavelDoLink;
+    if (!id) {
       return responsibles.length > 0 ? responsibles[0] : null;
     }
-    return responsibles.find((r) => r.id === createForm.selectedResponsibleId) || null;
-  }, [responsibles, createForm.selectedResponsibleId]);
+    return responsibles.find((r) => r.id === id) || null;
+  }, [responsibles, createForm.selectedResponsibleId, responsavelDoLink]);
 
   const selectedPlanPrice = precoDoPlano(createForm.selectedPlan);
 
@@ -121,6 +130,7 @@ export function AlunoNovo() {
       avatarText: "text-[#00629f]",
       photo: createForm.photo || undefined,
       guardian: selectedResponsible ? selectedResponsible.name : finalName,
+      responsavelId: selectedResponsible?.id,
       guardianRole: selectedResponsible
         ? `${selectedResponsible.role} • Principal`
         : "Titular da Conta",
@@ -174,7 +184,7 @@ export function AlunoNovo() {
         <div className="flex items-center gap-2 text-xs font-semibold text-[#584237]/70">
           <button
             type="button"
-            onClick={voltarParaLista}
+            onClick={() => router.push("/alunos")}
             className="hover:text-[#9e4300] hover:underline cursor-pointer"
           >
             Dashboard
@@ -182,7 +192,7 @@ export function AlunoNovo() {
           <span>›</span>
           <button
             type="button"
-            onClick={voltarParaLista}
+            onClick={() => router.push("/alunos")}
             className="hover:text-[#9e4300] hover:underline cursor-pointer"
           >
             Alunos
@@ -191,14 +201,6 @@ export function AlunoNovo() {
           <span className="text-[#9e4300] font-bold">Novo Aluno</span>
         </div>
 
-        <button
-          type="button"
-          onClick={voltarParaLista}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#584237] hover:text-[#9e4300] bg-white px-3.5 py-1.5 rounded-full border border-[#f0eded] shadow-sm hover:shadow transition-all cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-sm">arrow_back</span>
-          <span>Voltar para Lista de Alunos</span>
-        </button>
       </div>
 
       {/* Layout em 2 colunas: Formulário à esquerda e Resumo à direita */}
@@ -581,7 +583,7 @@ export function AlunoNovo() {
                         .includes(createForm.responsibleSearch.toLowerCase())
                     )
                     .map((resp) => {
-                      const isSelected = createForm.selectedResponsibleId === resp.id;
+                      const isSelected = selectedResponsible?.id === resp.id;
 
                       return (
                         <div
@@ -741,6 +743,23 @@ export function AlunoNovo() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Botões do Rodapé: Cancelar e Finalizar Cadastro */}
+          <div className="flex items-center justify-end gap-4 pt-2">
+            <button
+              type="button"
+              onClick={cancelarCadastro}
+              className="px-6 py-3 rounded-full text-sm font-bold text-[#584237] hover:bg-[#f5f3f3] transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-8 py-3.5 rounded-full text-sm font-bold bg-[#9e4300] hover:bg-[#7d3500] text-white shadow-xl shadow-[#9e4300]/25 hover:shadow-2xl active:scale-95 transition-all cursor-pointer"
+            >
+              Finalizar Cadastro
+            </button>
           </div>
         </div>
 

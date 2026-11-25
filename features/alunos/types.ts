@@ -17,6 +17,8 @@ export interface Aluno {
   avatarText: string;
   photo?: string;
   guardian: string;
+  /** Responsável financeiro vinculado (tabela Responsavel). */
+  responsavelId?: string;
   guardianRole?: string;
   guardianPhone?: string;
   guardianPhoto?: string;

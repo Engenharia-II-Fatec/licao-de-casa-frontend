@@ -33,3 +33,14 @@
 - Diga o módulo e a tela do protótipo: "implemente a listagem de professores (Figura 12) seguindo o padrão de `features/alunos`".
 - Peça para seguir o padrão de services (localStorage agora, API depois).
 - Revise o diff antes de commitar; o Claude não deve fazer push nem merge sem você pedir.
+
+## Problemas comuns no `npm run dev` (Windows)
+- **O `next dev` para logo depois do "Ready" com um aviso de segurança do Next.js**: rode o comando de novo;
+  na segunda vez ele continua. (O aviso pede para atualizar o Next — decisão do grupo.)
+- **"failed to create junction point ... Acesso negado"** ou **a página fica recarregando sem parar**
+  (console com "[Fast Refresh] rebuilding" em loop): pare o servidor e apague a pasta de cache `.next`
+  (`rmdir /s /q .next` no Prompt de Comando), depois rode `npm run dev` de novo. A pasta é recriada sozinha.
+- **Projeto dentro do OneDrive**: o Next não consegue criar os atalhos de que precisa. Deixe o projeto
+  fora do OneDrive (ex.: `D:\Projetos\Lição de Casa`).
+- **Depois de puxar uma migration nova** (pasta `prisma/migrations`): pare o servidor e rode
+  `npx prisma migrate dev` antes de subir de novo.

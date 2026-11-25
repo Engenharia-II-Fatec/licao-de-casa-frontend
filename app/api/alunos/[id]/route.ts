@@ -73,6 +73,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
         avatarText: body.avatarText,
         photo: body.photo || null,
         guardian: body.guardian,
+        // undefined = não altera o vínculo; null/"" = remove
+        responsavelId: body.responsavelId === undefined ? undefined : body.responsavelId || null,
         guardianRole: body.guardianRole || null,
         guardianPhone: body.guardianPhone || null,
         guardianPhoto: body.guardianPhoto || null,

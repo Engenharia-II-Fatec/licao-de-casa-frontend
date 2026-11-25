@@ -356,14 +356,14 @@ export function AlunoTitularDialog({ aluno, onClose, onSaved }: Props) {
             </div>
           </div>
 
-          {/* Modal Footer Actions: Descartar / Salvar Alterações */}
+          {/* Modal Footer Actions: Cancelar / Salvar Alterações */}
           <div className="p-6 sm:p-8 pt-4 border-t border-[#f0eded] flex justify-end items-center gap-4 bg-white">
             <button
               type="button"
               onClick={onClose}
               className="px-6 py-3 rounded-full text-sm font-bold text-[#584237] hover:bg-[#f5f3f3] transition-colors cursor-pointer"
             >
-              Descartar
+              Cancelar
             </button>
             <button
               type="submit"
