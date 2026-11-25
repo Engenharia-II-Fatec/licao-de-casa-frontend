@@ -75,7 +75,7 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 - [ ] `npm run lint` e `npm run build` sem erros antes de cada PR.
 
 ## 2. Back-end (rotas de API em `app/api`)
-- [ ] **Segurança:** as rotas `/api/alunos`, `/api/planos`, `/api/disciplinas` **não exigem login** (as de `/api/responsaveis` e `/api/professores` já exigem, via `exigirSessao()` de `lib/api-auth.ts`) (o `middleware.ts` só protege as páginas). Validar a sessão (`getSession()`) nelas ou incluir `/api` no middleware.
+- [x] **Segurança:** todas as rotas de `/api` (alunos, planos, disciplinas, responsáveis e professores) exigem login via `exigirSessao()` de `lib/api-auth.ts`; sem sessão respondem 401 (o `middleware.ts` só protege as páginas). Branch `fix/seguranca-api`.
 - [x] `PATCH /api/responsaveis/[id]` para inativar/reativar (coluna nova `Responsavel.ativo`, migration `responsavel_ativo` — rode `npx prisma migrate dev` depois do pull).
 - [x] `GET/PUT/DELETE /api/responsaveis/[id]` (com checagem de login; o PUT atualiza nome/telefone/foto nos alunos vinculados; o DELETE bloqueia com 409 se houver dependentes).
 - [x] `POST /api/professores` e `GET/PUT/PATCH/DELETE /api/professores/[id]` (com login, vínculo de disciplinas e currículo em `/api/professores/[id]/curriculo`; o DELETE bloqueia com 409 se houver aulas na agenda). Migration `professor_cadastro_completo` — rode `npx prisma migrate dev` depois do pull.

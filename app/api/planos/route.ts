@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirSessao } from "@/lib/api-auth";
 import type { Plano as PrismaPlano, Prisma } from "@prisma/client";
 import type { IconePlanoId, Plano, PlanoStatus } from "@/features/planos/types";
 
@@ -29,6 +30,9 @@ function mapearPlano(p: PrismaPlano): Plano {
 }
 
 export async function GET(request: NextRequest) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { searchParams } = new URL(request.url);
     const busca = searchParams.get("busca")?.trim();
@@ -58,6 +62,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const body = await request.json().catch(() => null);
     if (!body || !body.nome || !body.descricao) {

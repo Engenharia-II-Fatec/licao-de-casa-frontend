@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirSessao } from "@/lib/api-auth";
 import type { Plano as PrismaPlano } from "@prisma/client";
 import type { IconePlanoId, Plano, PlanoStatus } from "@/features/planos/types";
 
@@ -33,6 +34,9 @@ function mapearPlano(p: PrismaPlano): Plano {
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { id } = await params;
     const plano = await prisma.plano.findUnique({
@@ -51,6 +55,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { id } = await params;
     const body = await request.json().catch(() => null);
@@ -95,6 +102,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { id } = await params;
     await prisma.plano.delete({
