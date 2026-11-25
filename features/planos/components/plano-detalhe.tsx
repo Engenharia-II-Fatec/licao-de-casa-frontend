@@ -33,7 +33,7 @@ export function PlanoDetalhe({ params }: { params: Promise<{ id: string }> }) {
         actions={
           <>
             <Link
-              href={`/planos/${plano.id}/editar`}
+              href={`/planos/${plano.id}/editar?de=detalhes`}
               className={buttonClasses({ variant: "secondary" })}
             >
               <IconPencil className="size-4" />

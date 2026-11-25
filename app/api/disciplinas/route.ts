@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
-import type { Area, Disciplina } from "@/app/(app)/disciplinas/_components/dados";
+import type { Area, Disciplina } from "@/features/disciplinas/types";
 
 type DisciplinaComRelacoes = Prisma.DisciplinaGetPayload<{
   include: {

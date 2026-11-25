@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AREAS, PROFESSORES, type Area } from "./dados";
+import { useToast } from "@/components/ui/toast";
+import { AREAS } from "@/features/disciplinas/constants";
+import { useProfessoresOpcoes } from "@/features/disciplinas/hooks";
+import { disciplinasService } from "@/features/disciplinas/services";
+import type { Area } from "@/features/disciplinas/types";
 
 export type DadosFormulario = {
   nome: string;
@@ -31,6 +35,8 @@ type Props = {
 
 export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disciplinaId }: Props) {
   const router = useRouter();
+  const toast = useToast();
+  const { professores: todosProfessores, erro: erroProfessores } = useProfessoresOpcoes();
   const [dados, setDados] = useState<DadosFormulario>(inicial);
   const [busca, setBusca] = useState("");
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -41,8 +47,9 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disc
   }
 
   const sugestoes = busca.trim()
-    ? PROFESSORES.filter(
+    ? todosProfessores.filter(
         (p) =>
+          p.ativo &&
           !dados.professores.includes(p.id) &&
           `${p.nome} ${p.especialidade}`.toLowerCase().includes(busca.toLowerCase())
       )
@@ -59,23 +66,26 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disc
     if (Object.keys(novos).length > 0) return;
 
     setSalvando(true);
+    const corpo = {
+      nome: dados.nome.trim(),
+      area: dados.area as Area,
+      cargaHoraria: Number(dados.cargaHoraria),
+      ativa: dados.ativa,
+      ementa: dados.ementa.trim(),
+      professores: dados.professores,
+    };
     try {
-      const url = disciplinaId ? `/api/disciplinas/${disciplinaId}` : "/api/disciplinas";
-      const method = disciplinaId ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dados),
-      });
-
-      if (!res.ok) {
-        throw new Error("Erro ao salvar disciplina.");
+      if (disciplinaId) {
+        await disciplinasService.atualizar(disciplinaId, corpo);
+      } else {
+        await disciplinasService.criar(corpo);
       }
-
+      toast.success(`Disciplina ${corpo.nome} salva.`);
       router.push("/disciplinas");
-    } catch {
-      alert("Não foi possível salvar a disciplina no banco de dados.");
-    } finally {
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível salvar a disciplina no banco de dados."
+      );
       setSalvando(false);
     }
   }
@@ -194,6 +204,11 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disc
           placeholder="Pesquisar professor por nome ou especialidade para vincular..."
           className="w-full rounded-full bg-[#f7f3f1] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-400"
         />
+        {erroProfessores && (
+          <p role="alert" className="mt-1 text-xs text-red-600">
+            {erroProfessores}
+          </p>
+        )}
         {sugestoes.length > 0 && (
           <ul className="mt-2 overflow-hidden rounded-2xl border border-neutral-200 bg-white text-sm">
             {sugestoes.map((p) => (
@@ -215,7 +230,7 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disc
         )}
         <div className="mt-3 flex flex-wrap gap-2">
           {dados.professores.map((id) => {
-            const p = PROFESSORES.find((x) => x.id === id);
+            const p = todosProfessores.find((x) => x.id === id);
             if (!p) return null;
             return (
               <span

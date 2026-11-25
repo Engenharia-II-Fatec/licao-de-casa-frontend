@@ -20,16 +20,16 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 | 9 | Listagem de Responsáveis | ✅ `responsaveis` | ✅ `GET /api/responsaveis` | Pronta |
 | 10 | Detalhes/Edição de Responsável | ✅ `responsaveis/[id]` | ✅ `GET/PUT/DELETE /api/responsaveis/[id]` | Pronta |
 | 11 | Cadastro de Professor | ✅ `professores/novo` | ✅ `POST /api/professores` | Pronta |
-| 12 | Listagem de Professores | ✅ `professores` | ✅ `GET /api/professores` | Pronta — "Relatórios" fica desabilitado até existir o módulo |
+| 12 | Listagem de Professores | ✅ `professores` | ✅ `GET /api/professores` | Pronta — cabeçalho, filtros e "Exportar" (planilha ou PDF) no mesmo padrão de Alunos e Responsáveis |
 | 13 | Detalhes/Edição de Professor | ✅ `professores/[id]` | ✅ `GET/PUT/PATCH/DELETE /api/professores/[id]` | Pronta |
 | 14 | Cadastro de Disciplina | ✅ `disciplinas/nova` | ✅ `POST /api/disciplinas` | Pronta |
-| 15 | Listagem de Disciplinas | 🟡 `disciplinas` | ✅ | Se a API vier vazia ou falhar, mostra os **dados fictícios** de `_components/dados.ts`; exclusão ignora erro |
-| 16 | Detalhes/Edição de Disciplina | 🟡 `disciplinas/[id]/editar` | ✅ `PUT` | Carrega a disciplina e os professores dos **dados fictícios**, não da API |
+| 15 | Listagem de Disciplinas | ✅ `disciplinas` | ✅ `GET/DELETE /api/disciplinas` | Pronta — estados de carregando, vazio e erro reais; exclusão só sai da tela se a API responder OK |
+| 16 | Detalhes/Edição de Disciplina | ✅ `disciplinas/[id]/editar` | ✅ `GET/PUT /api/disciplinas/[id]` | Pronta — carrega a disciplina e os professores da API |
 | 17 | Cadastro de Plano de Aula | ✅ `planos/novo` | ✅ | Pronta |
 | 18 | Listagem de Planos de Aula | ✅ `planos` | ✅ | Pronta |
 | 19 | Detalhes/Edição de Plano de Aula | ✅ `planos/[id]`, `planos/[id]/editar` | ✅ | Pronta |
 
-**Resumo:** 17 telas: 15 prontas e 2 parciais (15, 16 — Disciplinas).
+**Resumo:** 17 telas, todas prontas.
 
 ---
 
@@ -58,13 +58,13 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 - [x] `nav-config.ts`: `Professores` → `implementado: true`.
 
 ### Disciplinas (Fig. 15 e 16) — branch `fix/disciplinas-api`
-- [ ] Listagem: remover a volta aos dados fictícios; mostrar estado vazio e erro de verdade.
-- [ ] Edição: carregar a disciplina via `GET /api/disciplinas/[id]` e os professores via `GET /api/professores`.
-- [ ] Exclusão: só remover da tela se a API responder OK; mostrar toast de erro.
-- [ ] Criar `features/disciplinas/` com service, como os outros módulos (opcional, mas deixa o padrão igual).
+- [x] Listagem: remover a volta aos dados fictícios; mostrar estado vazio e erro de verdade.
+- [x] Edição: carregar a disciplina via `GET /api/disciplinas/[id]` e os professores via `GET /api/professores`.
+- [x] Exclusão: só remover da tela se a API responder OK; mostrar toast de erro.
+- [x] Criar `features/disciplinas/` (types, constants, hooks, service). Os dados fictícios foram para `features/disciplinas/mock-data.ts` e só o `prisma/seed.ts` usa.
 
 ### Planos de Aula (Fig. 19) — branch `fix/planos-navegacao`
-- [ ] Botão "Voltar" da edição (`planos/[id]/editar`) volta para os detalhes do plano em vez da listagem → corrigir para levar a `/planos`.
+- [x] Botão "Voltar" da edição (`planos/[id]/editar`): pelo lápis da listagem volta para `/planos`; pelo "Editar" dos detalhes (`?de=detalhes`) volta para os detalhes.
 
 ### Geral
 - [ ] Verificar redundância entre as telas de detalhes e de edição (alunos, responsáveis, disciplinas, planos, professores): campos e ações repetidos, e se vale unificar em uma tela só com modo de edição.

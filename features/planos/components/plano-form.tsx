@@ -29,9 +29,12 @@ export function PlanoForm({
   inicial,
   submitLabel,
   onSubmit,
+  cancelarHref = "/planos",
 }: {
   inicial?: PlanoFormValues;
   submitLabel: string;
+  /** Para onde o "Descartar" leva. */
+  cancelarHref?: string;
   onSubmit: (dados: PlanoInput) => Promise<void>;
 }) {
   const router = useRouter();
@@ -209,7 +212,7 @@ export function PlanoForm({
           <Button
             variant="tertiary"
             size="lg"
-            onClick={() => router.push("/planos")}
+            onClick={() => router.push(cancelarHref)}
             disabled={salvando}
           >
             Descartar
