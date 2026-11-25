@@ -38,3 +38,8 @@ export function useCadastroAluno(): CadastroAlunoApi {
   if (!ctx) throw new Error("useCadastroAluno deve ser usado dentro de <CadastroAlunoProvider>.");
   return ctx;
 }
+
+/** Igual a `useCadastroAluno`, mas retorna null fora do fluxo de "Novo Aluno" (ex.: /responsaveis/novo). */
+export function useCadastroAlunoOpcional(): CadastroAlunoApi | null {
+  return useContext(CadastroAlunoContext);
+}

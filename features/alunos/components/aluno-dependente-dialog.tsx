@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useToast } from "@/components/ui/toast";
 import { mascararEmail, mascararTelefone } from "@/lib/masks";
@@ -199,29 +200,17 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                 </div>
               </div>
 
-              {/* Seção Histórico de Pagamentos: Financeiro via Responsável */}
+              {/* Seção Perfil Financeiro via Responsável: o aluno dependente não tem financeiro próprio */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#00a9a1]"></span>
-                    <h4 className="text-xs font-black uppercase tracking-wider text-[#584237]">
-                      Histórico de Pagamentos
-                    </h4>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      showToast(`Exibindo histórico de pagamentos de ${dependentFormData.name}`)
-                    }
-                    className="text-xs font-bold text-[#00629f] hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Ver Todos</span>
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </button>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-[#00a9a1]"></span>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#584237]">
+                    Perfil Financeiro via Responsável
+                  </h4>
                 </div>
 
                 {/* Card "Financeiro via Responsável" */}
-                <div className="bg-[#eaf3fc] rounded-2xl p-4 sm:p-5 border border-[#d0e4ff] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_4px_20px_-4px_rgba(0,98,159,0.06)]">
+                <div className="bg-[#eaf3fc] rounded-2xl p-4 sm:p-5 border border-[#d0e4ff] flex flex-col items-start gap-4 shadow-[0_4px_20px_-4px_rgba(0,98,159,0.06)]">
                   <div className="flex items-center gap-3.5">
                     <div className="w-12 h-12 rounded-2xl bg-[#d0e4ff] text-[#00629f] flex items-center justify-center shrink-0 shadow-sm">
                       <span className="material-symbols-outlined text-2xl">
@@ -230,28 +219,26 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                     </div>
                     <div>
                       <h5 className="font-bold text-sm sm:text-base text-[#1b1c1c]">
-                        Financeiro via Responsável
+                        {dependentFormData.guardian}
                       </h5>
                       <p className="text-xs text-[#584237]/80 mt-0.5">
-                        Pagamentos gerenciados por:{' '}
-                        <span className="font-bold text-[#1b1c1c]">
-                          {dependentFormData.guardian}
-                        </span>
+                        Faturas e pagamentos ficam no perfil do responsável.
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      showToast(
-                        `Abrindo painel financeiro do responsável: ${dependentFormData.guardian}`
-                      )
-                    }
-                    className="bg-white hover:bg-[#f0f7ff] text-[#00629f] px-4 py-2.5 rounded-full font-bold text-xs shadow-sm border border-[#d0e4ff]/70 flex items-center gap-1.5 transition-all active:scale-95 shrink-0 cursor-pointer"
-                  >
-                    <span>Ver Perfil Financeiro</span>
-                    <span className="material-symbols-outlined text-sm">open_in_new</span>
-                  </button>
+                  {dependentFormData.responsavelId ? (
+                    <Link
+                      href={`/responsaveis/${dependentFormData.responsavelId}?voltarAluno=${encodeURIComponent(dependentFormData.id)}`}
+                      className="bg-white hover:bg-[#f0f7ff] text-[#00629f] px-4 py-2.5 rounded-full font-bold text-xs shadow-sm border border-[#d0e4ff]/70 flex items-center gap-1.5 transition-all active:scale-95 shrink-0 cursor-pointer"
+                    >
+                      <span>Ir para o Perfil do Responsável</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </Link>
+                  ) : (
+                    <span className="text-xs font-semibold text-[#584237]/70 shrink-0">
+                      Nenhum responsável vinculado
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -327,18 +314,15 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      showToast(
-                        `Editar dados do responsável: ${dependentFormData.guardian}`
-                      )
-                    }
-                    className="p-2 text-[#584237]/70 hover:text-[#1b1c1c] hover:bg-[#f5f3f3] rounded-xl transition-all cursor-pointer"
-                    title="Editar Responsável"
-                  >
-                    <span className="material-symbols-outlined text-lg">edit_note</span>
-                  </button>
+                  {dependentFormData.responsavelId && (
+                    <Link
+                      href={`/responsaveis/${dependentFormData.responsavelId}?voltarAluno=${encodeURIComponent(dependentFormData.id)}`}
+                      className="p-2 text-[#584237]/70 hover:text-[#1b1c1c] hover:bg-[#f5f3f3] rounded-xl transition-all cursor-pointer"
+                      title="Abrir perfil do responsável"
+                    >
+                      <span className="material-symbols-outlined text-lg">edit_note</span>
+                    </Link>
+                  )}
                 </div>
 
                 {/* Botão com Borda Tracejada: + Vincular Novo */}
@@ -358,14 +342,14 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
             </div>
           </div>
 
-          {/* Modal Footer Actions: Descartar / Salvar Alterações */}
+          {/* Modal Footer Actions: Cancelar / Salvar Alterações */}
           <div className="p-6 sm:p-8 pt-4 border-t border-[#f0eded] flex justify-end items-center gap-4 bg-white">
             <button
               type="button"
               onClick={onClose}
               className="px-6 py-3 rounded-full text-sm font-bold text-[#584237] hover:bg-[#f5f3f3] transition-colors cursor-pointer"
             >
-              Descartar
+              Cancelar
             </button>
             <button
               type="submit"

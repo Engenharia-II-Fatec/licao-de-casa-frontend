@@ -52,6 +52,7 @@ model Responsavel {
   name         String
   role         String   @default("Responsável") // Mãe, Pai, Responsável, Titular da Conta
   phone        String
+  ativo        Boolean  @default(true) // false = inativado (sem excluir o histórico)
   photo        String?
   cpf          String?
   rg           String?

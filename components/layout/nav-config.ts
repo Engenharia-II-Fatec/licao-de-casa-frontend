@@ -30,7 +30,7 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   { label: "Alunos", href: "/alunos", icon: IconUsers, implementado: true },
-  { label: "Responsáveis", href: "/responsaveis", icon: IconUserCheck, implementado: false },
+  { label: "Responsáveis", href: "/responsaveis", icon: IconUserCheck, implementado: true },
   { label: "Professores", href: "/professores", icon: IconCap, implementado: false },
   { label: "Disciplinas", href: "/disciplinas", icon: IconBook, implementado: true },
   { label: "Planos de Aula", href: "/planos", icon: IconClipboard, implementado: true },

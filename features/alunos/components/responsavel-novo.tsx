@@ -7,23 +7,41 @@ import { DropdownSelect } from "@/components/ui/dropdown-select";
 import { useToast } from "@/components/ui/toast";
 import { mascararCep, mascararCpf, mascararEmail, mascararRg, mascararTelefone } from "@/lib/masks";
 import { consultarCep } from "@/lib/viacep";
-import { useCadastroAluno } from "../cadastro-context";
+import { processarImagem } from "@/lib/image";
+import { useCadastroAlunoOpcional } from "../cadastro-context";
 import { CADASTRO_RESPONSAVEL_INICIAL, OPCOES_UF } from "../constants";
 import { responsaveisService } from "../services";
 import { CidadeSelect } from "./cidade-select";
 
-/** Tela "Cadastro de Responsável", aberta a partir do "Cadastro de Novo Aluno". */
-export function ResponsavelNovo() {
+/**
+ * Tela "Cadastro de Responsável" (Figura 4).
+ * - origem "aluno": aberta pelo "Cadastro de Novo Aluno"; ao salvar, volta para ele com o responsável já selecionado.
+ * - origem "responsaveis": aberta pelo menu Responsáveis; ao salvar, abre o cadastro criado.
+ */
+export function ResponsavelNovo({ origem = "aluno" }: { origem?: "aluno" | "responsaveis" } = {}) {
   const router = useRouter();
   const toast = useToast();
   const showToast = toast.success;
-  const { setForm: setCreateForm } = useCadastroAluno();
+  const cadastroAluno = useCadastroAlunoOpcional();
+  const fotoInputRef = useRef<HTMLInputElement>(null);
   const [newRespForm, setNewRespForm] = useState(CADASTRO_RESPONSAVEL_INICIAL);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const ultimoCepBuscadoRef = useRef("");
   const numeroInputRef = useRef<HTMLInputElement>(null);
 
-  const voltar = () => router.push("/alunos/novo");
+  const voltar = () => router.push(origem === "responsaveis" ? "/responsaveis" : "/alunos/novo");
+
+  const handleFotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo) return;
+    try {
+      const dataUrl = await processarImagem(arquivo);
+      setNewRespForm((prev) => ({ ...prev, photo: dataUrl }));
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível usar esta imagem.");
+    }
+  };
 
   const buscarEnderecoPorCep = useCallback(
     async (cepValor: string, forcar = false) => {
@@ -113,9 +131,14 @@ export function ResponsavelNovo() {
         state: newRespForm.state,
       });
 
-      // Já deixa o novo responsável selecionado no cadastro do aluno.
-      setCreateForm((prev) => ({ ...prev, selectedResponsibleId: newResp.id }));
       setNewRespForm(CADASTRO_RESPONSAVEL_INICIAL);
+      if (origem === "responsaveis" || !cadastroAluno) {
+        showToast(`Responsável "${newResp.name}" cadastrado!`);
+        router.push(`/responsaveis/${encodeURIComponent(newResp.id)}`);
+        return;
+      }
+      // Já deixa o novo responsável selecionado no cadastro do aluno.
+      cadastroAluno.setForm((prev) => ({ ...prev, selectedResponsibleId: newResp.id }));
       showToast(`Responsável "${newResp.name}" cadastrado e vinculado!`);
       voltar();
     } catch (erro) {
@@ -132,13 +155,9 @@ export function ResponsavelNovo() {
       Dashboard
     </Link>
                     <span>›</span>
-                    <button
-                      type="button"
-
-                      className="hover:text-[#9e4300] hover:underline cursor-pointer"
-                    >
+                    <Link href="/responsaveis" className="hover:text-[#9e4300] hover:underline cursor-pointer">
                       Responsáveis
-                    </button>
+                    </Link>
                     <span>›</span>
                     <span className="text-[#9e4300] font-bold">Novo Cadastro</span>
                   </div>
@@ -167,30 +186,64 @@ export function ResponsavelNovo() {
                       </h3>
                     </div>
 
-                    {/* Seção Foto / Ícone do Responsável */}
+                    {/* Foto do Responsável */}
                     <div className="flex items-center gap-4 sm:gap-6">
-                      <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => fotoInputRef.current?.click()}
+                        className="relative shrink-0 cursor-pointer"
+                        title="Escolher foto"
+                      >
                         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#ffdbcb] text-[#783100] flex items-center justify-center overflow-hidden shadow-sm">
-                          <span className="material-symbols-outlined text-3xl sm:text-4xl">
-                            person
-                          </span>
+                          {newRespForm.photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={newRespForm.photo} alt="Foto do responsável" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-3xl sm:text-4xl">person</span>
+                          )}
                         </div>
-                        <div
-                          className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#9e4300] text-white flex items-center justify-center shadow-md"
-                          title="Ícone do perfil"
-                        >
-                          <span className="material-symbols-outlined text-xs">account_circle</span>
-                        </div>
-                      </div>
+                        <span className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-[#9e4300] text-white flex items-center justify-center shadow-md">
+                          <span className="material-symbols-outlined text-xs">photo_camera</span>
+                        </span>
+                      </button>
+                      <input
+                        ref={fotoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleFotoChange}
+                        className="hidden"
+                        aria-label="Foto do responsável"
+                      />
 
                       <div className="flex flex-col gap-2">
                         <p className="text-xs sm:text-sm text-[#584237]/80 leading-relaxed max-w-xl">
-                          Ícone de identificação do responsável no sistema.
+                          Adicione uma foto nítida do responsável para facilitar a identificação no sistema.
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-3 py-1 rounded-full bg-[#f0eded] text-[11px] font-bold text-[#584237]">
-                            Ícone Padrão
+                            JPG, PNG
                           </span>
+                          <span className="px-3 py-1 rounded-full bg-[#f0eded] text-[11px] font-bold text-[#584237]">
+                            MÁX. 5 MB
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => fotoInputRef.current?.click()}
+                            className="w-fit text-xs font-bold text-[#9e4300] hover:underline cursor-pointer"
+                          >
+                            {newRespForm.photo ? "Alterar Foto" : "Adicionar Foto"}
+                          </button>
+                          {newRespForm.photo && (
+                            <button
+                              type="button"
+                              onClick={() => setNewRespForm((prev) => ({ ...prev, photo: "" }))}
+                              className="w-fit text-xs font-bold text-[#584237]/70 hover:underline cursor-pointer"
+                            >
+                              Remover
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
