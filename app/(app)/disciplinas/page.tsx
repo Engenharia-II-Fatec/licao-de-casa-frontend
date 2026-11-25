@@ -1,30 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { AREAS, DISCIPLINAS, ESTILO_AREA, type Area } from "./_components/dados";
+import { useState } from "react";
+import { Button, buttonClasses } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState, Skeleton } from "@/components/ui/empty-state";
+import { useToast } from "@/components/ui/toast";
+import { AREAS, ESTILO_AREA, ESTILO_PADRAO } from "@/features/disciplinas/constants";
+import { useListaDisciplinas } from "@/features/disciplinas/hooks";
+import { disciplinasService } from "@/features/disciplinas/services";
+import type { Area, Disciplina } from "@/features/disciplinas/types";
 
 const POR_PAGINA = 6;
 
 export default function ListagemDisciplinas() {
-  const [lista, setLista] = useState(DISCIPLINAS);
+  const { disciplinas: lista, setDisciplinas, carregando, erro, recarregar } = useListaDisciplinas();
+  const toast = useToast();
   const [busca, setBusca] = useState("");
   const [area, setArea] = useState<Area | "todas">("todas");
   const [pagina, setPagina] = useState(1);
-
-  useEffect(() => {
-    fetch("/api/disciplinas")
-      .then((res) => {
-        if (!res.ok) throw new Error("Erro ao carregar");
-        return res.json();
-      })
-      .then((dados) => {
-        if (Array.isArray(dados) && dados.length > 0) {
-          setLista(dados);
-        }
-      })
-      .catch(() => null);
-  }, []);
+  const [paraExcluir, setParaExcluir] = useState<Disciplina | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   const filtradas = lista.filter(
     (d) =>
@@ -38,14 +34,19 @@ export default function ListagemDisciplinas() {
     paginaAtual * POR_PAGINA
   );
 
-  async function remover(id: number) {
-    if (confirm("Deseja realmente excluir esta disciplina?")) {
-      try {
-        await fetch(`/api/disciplinas/${id}`, { method: "DELETE" });
-      } catch {
-        // ignora erro de rede e atualiza estado local
-      }
-      setLista((atual) => atual.filter((d) => d.id !== id));
+  async function confirmarExclusao() {
+    if (!paraExcluir) return;
+    setExcluindo(true);
+    try {
+      await disciplinasService.excluir(paraExcluir.id);
+      setDisciplinas((atual) => (atual ?? []).filter((d) => d.id !== paraExcluir.id));
+      toast.success(`Disciplina ${paraExcluir.nome} excluída.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível excluir a disciplina.");
+    } finally {
+      // Fecha o diálogo também no erro: o modal ficaria por cima do toast.
+      setParaExcluir(null);
+      setExcluindo(false);
     }
   }
 
@@ -87,9 +88,11 @@ export default function ListagemDisciplinas() {
               </option>
             ))}
           </select>
-          <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-600">
-            {lista.filter((d) => d.ativa).length} Disciplinas Ativas
-          </span>
+          {!carregando && !erro && (
+            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-600">
+              {lista.filter((d) => d.ativa).length} Disciplinas Ativas
+            </span>
+          )}
           <Link
             href="/disciplinas/nova"
             className="rounded-full bg-gradient-to-r from-[#a8501a] to-[#ea7a1a] px-5 py-2 text-sm font-bold text-white shadow"
@@ -98,16 +101,51 @@ export default function ListagemDisciplinas() {
           </Link>
         </section>
 
-        {visiveis.length === 0 ? (
-          <p className="py-10 text-center text-sm text-neutral-500">
-            Nenhuma disciplina encontrada.
-          </p>
+        {carregando ? (
+          <section className="grid gap-4 md:grid-cols-2" aria-busy="true">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-36 rounded-3xl" />
+            ))}
+          </section>
+        ) : erro ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center gap-4 rounded-[2rem] bg-error-container/40 px-6 py-14 text-center"
+          >
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-bold text-on-surface">
+                Não foi possível carregar as disciplinas
+              </h2>
+              <p className="max-w-md text-sm text-on-surface-variant">{erro}</p>
+            </div>
+            <Button variant="secondary" onClick={recarregar}>
+              Tentar novamente
+            </Button>
+          </div>
+        ) : lista.length === 0 ? (
+          <EmptyState
+            title="Nenhuma disciplina cadastrada"
+            description="Cadastre a primeira disciplina para montar a grade curricular."
+            action={
+              <Link href="/disciplinas/nova" className={buttonClasses()}>
+                + Cadastrar Disciplina
+              </Link>
+            }
+          />
+        ) : visiveis.length === 0 ? (
+          <EmptyState
+            title="Nenhuma disciplina encontrada"
+            description="Nenhuma disciplina corresponde à busca ou ao filtro de área."
+          />
         ) : (
           <section className="grid gap-4 md:grid-cols-2">
             {visiveis.map((d) => {
-              const estilo = ESTILO_AREA[d.area];
+              const estilo = ESTILO_AREA[d.area] ?? ESTILO_PADRAO;
               return (
-                <article key={d.id} className="rounded-3xl bg-white p-5 shadow-sm">
+                <article
+                  key={d.id}
+                  className={`rounded-3xl p-5 shadow-sm ${d.ativa ? "bg-white" : "bg-neutral-50"}`}
+                >
                   <div className="flex gap-4">
                     <div
                       className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl ${estilo.icone}`}
@@ -123,6 +161,19 @@ export default function ListagemDisciplinas() {
                           >
                             {d.area}
                           </span>
+                          <span
+                            className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                              d.ativa
+                                ? "bg-green-100 text-green-700"
+                                : "bg-neutral-200 text-neutral-600"
+                            }`}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`h-1.5 w-1.5 rounded-full ${d.ativa ? "bg-green-500" : "bg-neutral-400"}`}
+                            />
+                            {d.ativa ? "Ativa" : "Inativa"}
+                          </span>
                         </div>
                         <div className="flex gap-1">
                           <Link
@@ -133,7 +184,7 @@ export default function ListagemDisciplinas() {
                             <IconeEditar />
                           </Link>
                           <button
-                            onClick={() => remover(d.id)}
+                            onClick={() => setParaExcluir(d)}
                             aria-label={`Excluir ${d.nome}`}
                             className="rounded-full bg-neutral-100 p-2 text-neutral-600 hover:bg-red-100 hover:text-red-600"
                           >
@@ -157,6 +208,7 @@ export default function ListagemDisciplinas() {
           </section>
         )}
 
+        {!carregando && !erro && filtradas.length > 0 && (
         <nav className="flex items-center justify-center gap-2">
           <button
             onClick={() => setPagina(paginaAtual - 1)}
@@ -184,7 +236,23 @@ export default function ListagemDisciplinas() {
             ›
           </button>
         </nav>
+        )}
       </div>
+
+      <ConfirmDialog
+        open={paraExcluir !== null}
+        title="Excluir disciplina?"
+        description={
+          <>
+            A disciplina <strong>{paraExcluir?.nome}</strong> será excluída, junto com os vínculos
+            de professores e as matrículas dos alunos. Esta ação não pode ser desfeita.
+          </>
+        }
+        confirmLabel="Excluir"
+        loading={excluindo}
+        onConfirm={confirmarExclusao}
+        onClose={() => setParaExcluir(null)}
+      />
     </div>
   );
 }

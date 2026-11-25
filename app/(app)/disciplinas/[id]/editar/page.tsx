@@ -3,17 +3,23 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
-import {
-  DISCIPLINAS,
-  PROFESSORES,
-  type Area,
-  type Disciplina,
-} from "../../_components/dados";
+import { useToast } from "@/components/ui/toast";
+import { useDisciplina, useProfessoresOpcoes } from "@/features/disciplinas/hooks";
+import { disciplinasService } from "@/features/disciplinas/services";
+import type { Area, DisciplinaDetalhe } from "@/features/disciplinas/types";
 
 const CATEGORIAS = ["Exatas", "Humanas", "Linguagens", "Artes"] as const;
 type Categoria = (typeof CATEGORIAS)[number];
 
 // O protótipo da edição tem só 4 categorias, então as outras áreas são agrupadas.
+// A área só é regravada se o usuário escolher outra categoria.
+const AREA_DA_CATEGORIA: Record<Categoria, Area> = {
+  Exatas: "Exatas",
+  Humanas: "Humanas",
+  Linguagens: "Linguagens",
+  Artes: "Artes & Cultura",
+};
+
 const CATEGORIA_DA_AREA: Record<Area, Categoria> = {
   Exatas: "Exatas",
   Humanas: "Humanas",
@@ -56,20 +62,23 @@ function Icone({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Edicao({ disciplina }: { disciplina: Disciplina }) {
+function Edicao({ disciplina }: { disciplina: DisciplinaDetalhe }) {
   const router = useRouter();
-  const professorInicial = PROFESSORES.find((p) => p.nome === disciplina.professor);
+  const toast = useToast();
+  const { professores: todosProfessores, carregando: carregandoProfessores, erro: erroProfessores } =
+    useProfessoresOpcoes();
+  const categoriaInicial = CATEGORIA_DA_AREA[disciplina.area] ?? "Exatas";
 
   const [nome, setNome] = useState(disciplina.nome);
-  const [categoria, setCategoria] = useState<Categoria>(CATEGORIA_DA_AREA[disciplina.area]);
+  const [categoria, setCategoria] = useState<Categoria>(categoriaInicial);
   const [descricao, setDescricao] = useState(disciplina.descricao);
-  const [professores, setProfessores] = useState<number[]>(
-    professorInicial ? [professorInicial.id] : []
-  );
+  const [ativa, setAtiva] = useState(disciplina.ativa);
+  const [professores, setProfessores] = useState<number[]>(disciplina.professoresIds);
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
 
-  const disponiveis = PROFESSORES.filter((p) => !professores.includes(p.id));
+  const disponiveis = todosProfessores.filter((p) => p.ativo && !professores.includes(p.id));
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -78,23 +87,22 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
       return;
     }
     setErro("");
+    setSalvando(true);
     try {
-      const res = await fetch(`/api/disciplinas/${disciplina.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: nome.trim(),
-          descricao: descricao.trim(),
-          professores,
-        }),
+      await disciplinasService.atualizar(disciplina.id, {
+        nome: nome.trim(),
+        descricao: descricao.trim(),
+        ativa,
+        professores,
+        ...(categoria !== categoriaInicial ? { area: AREA_DA_CATEGORIA[categoria] } : {}),
       });
-
-      if (!res.ok) {
-        throw new Error("Erro ao salvar disciplina.");
-      }
+      toast.success(`Disciplina ${nome.trim()} atualizada.`);
       router.push("/disciplinas");
-    } catch {
-      setErro("Não foi possível salvar as alterações no banco de dados.");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível salvar as alterações no banco de dados."
+      );
+      setSalvando(false);
     }
   }
 
@@ -123,7 +131,7 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
               <div>
                 <p className="text-[10px] font-bold text-neutral-700">Status Atual</p>
                 <p className="text-xs font-bold text-neutral-900">
-                  {disciplina.nome} {disciplina.ativa ? "Ativa" : "Inativa"}
+                  {nome.trim() || disciplina.nome} {ativa ? "Ativa" : "Inativa"}
                 </p>
               </div>
             </div>
@@ -156,6 +164,40 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
               className={`${classeCampo} rounded-full`}
             />
             {erro && <p className="mt-1 text-xs text-red-600">{erro}</p>}
+          </div>
+
+          <div>
+            <p className={classeRotulo}>
+              <Icone>
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </Icone>
+              Status da Disciplina
+            </p>
+            <div className="flex items-center justify-between rounded-full bg-[#f1eceb] px-5 py-3">
+              <span className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
+                <span
+                  className={`h-2 w-2 rounded-full ${ativa ? "bg-green-500" : "bg-neutral-400"}`}
+                />
+                {ativa ? "Ativa no Período Letivo" : "Inativa no Período Letivo"}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={ativa}
+                aria-label="Disciplina ativa no período letivo"
+                onClick={() => setAtiva(!ativa)}
+                className={`relative h-6 w-11 rounded-full transition ${
+                  ativa ? "bg-orange-500" : "bg-neutral-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                    ativa ? "left-5" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           <div>
@@ -207,9 +249,10 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
             </Link>
             <button
               type="submit"
-              className="rounded-full bg-gradient-to-r from-[#8f3d0a] to-[#e8731a] px-7 py-3 text-sm font-bold text-white shadow-lg shadow-orange-900/20"
+              disabled={salvando}
+              className="disabled:cursor-not-allowed disabled:opacity-60 rounded-full bg-gradient-to-r from-[#8f3d0a] to-[#e8731a] px-7 py-3 text-sm font-bold text-white shadow-lg shadow-orange-900/20"
             >
-              Salvar Alterações
+              {salvando ? "Salvando..." : "Salvar Alterações"}
             </button>
           </div>
         </form>
@@ -218,9 +261,14 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
       {/* Professores vinculados */}
       <section>
         <h2 className="mb-3 text-sm font-bold text-neutral-900">Professores Vinculados</h2>
+        {erroProfessores && (
+          <p role="alert" className="mb-3 text-xs text-red-600">
+            {erroProfessores}
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-3">
           {professores.map((id) => {
-            const p = PROFESSORES.find((x) => x.id === id);
+            const p = todosProfessores.find((x) => x.id === id);
             if (!p) return null;
             return (
               <div
@@ -256,7 +304,9 @@ function Edicao({ disciplina }: { disciplina: Disciplina }) {
             </button>
             {seletorAberto && (
               <ul className="absolute left-0 right-0 top-full z-10 mt-2 overflow-hidden rounded-2xl border border-neutral-200 bg-white text-sm shadow-lg">
-                {disponiveis.length === 0 ? (
+                {carregandoProfessores ? (
+                  <li className="px-4 py-3 text-neutral-500">Carregando professores...</li>
+                ) : disponiveis.length === 0 ? (
                   <li className="px-4 py-3 text-neutral-500">Nenhum professor disponível.</li>
                 ) : (
                   disponiveis.map((p) => (
@@ -290,9 +340,28 @@ export default function EditarDisciplina({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const disciplina = DISCIPLINAS.find((d) => d.id === Number(id));
+  const { disciplina, erro } = useDisciplina(Number(id));
 
-  if (!disciplina) {
+  if (erro) {
+    return (
+      <div role="alert" className="mx-auto max-w-5xl py-10 text-center text-sm text-neutral-500">
+        {erro}{" "}
+        <Link href="/disciplinas" className="font-semibold text-[#a8501a]">
+          Voltar para a lista
+        </Link>
+      </div>
+    );
+  }
+
+  if (disciplina === undefined) {
+    return (
+      <div className="mx-auto max-w-5xl py-10 text-center text-sm text-neutral-500" aria-busy="true">
+        Carregando disciplina...
+      </div>
+    );
+  }
+
+  if (disciplina === null) {
     return (
       <div className="mx-auto max-w-5xl py-10 text-center text-sm text-neutral-500">
         Disciplina não encontrada.{" "}

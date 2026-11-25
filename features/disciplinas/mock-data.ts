@@ -1,33 +1,5 @@
-export const AREAS = [
-  "Exatas",
-  "Linguagens",
-  "Humanas",
-  "Idiomas",
-  "Ciências Naturais",
-  "Artes & Cultura",
-] as const;
-
-export type Area = (typeof AREAS)[number];
-
-export type Disciplina = {
-  id: number;
-  nome: string;
-  area: Area;
-  descricao: string;
-  cargaHoraria: number;
-  alunos: number;
-  professor: string;
-  ativa: boolean;
-};
-
-export const ESTILO_AREA: Record<Area, { tag: string; icone: string; emoji: string }> = {
-  Exatas: { tag: "bg-orange-100 text-orange-700", icone: "bg-orange-100", emoji: "🧮" },
-  Linguagens: { tag: "bg-blue-100 text-blue-700", icone: "bg-blue-100", emoji: "📖" },
-  Humanas: { tag: "bg-amber-100 text-amber-800", icone: "bg-amber-100", emoji: "🏛️" },
-  Idiomas: { tag: "bg-teal-100 text-teal-700", icone: "bg-teal-100", emoji: "🌎" },
-  "Ciências Naturais": { tag: "bg-sky-100 text-sky-700", icone: "bg-sky-100", emoji: "🔬" },
-  "Artes & Cultura": { tag: "bg-rose-100 text-rose-700", icone: "bg-rose-100", emoji: "🎨" },
-};
+/** Dados de exemplo usados só pelo `prisma/seed.ts`. As telas leem tudo da API. */
+import type { Disciplina } from "./types";
 
 export const DISCIPLINAS: Disciplina[] = [
   { id: 1, nome: "Matemática", area: "Exatas", descricao: "Desenvolvimento de raciocínio lógico, álgebra, geometria e resolução de problemas do cotidiano escolar.", cargaHoraria: 4, alunos: 28, professor: "Prof. Carlos Mendes", ativa: true },

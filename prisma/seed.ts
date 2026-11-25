@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { criarSeedAlunos } from "../features/alunos/mock-data";
 import { criarSeedPlanos } from "../features/planos/mock-data";
-import { DISCIPLINAS, PROFESSORES } from "../app/(app)/disciplinas/_components/dados";
+import { DISCIPLINAS, PROFESSORES } from "../features/disciplinas/mock-data";
 
 const prisma = new PrismaClient();
 
