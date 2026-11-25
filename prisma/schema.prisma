@@ -136,15 +136,31 @@ model RegistroPagamento {
 // Professores
 // -------------------------------------------------------------
 model Professor {
-  id           Int                  @id @default(autoincrement())
-  nome         String
-  especialidade String
-  email        String?
-  telefone     String?
-  foto         String?
-  ativo        Boolean              @default(true)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  id             Int                  @id @default(autoincrement())
+  nome           String
+  especialidade  String?              // disciplina principal (exibida em outras telas)
+  email          String?
+  telefone       String?
+  foto           String?              // data URL da foto
+  cpf            String?              @unique
+  rg             String?
+  dataNascimento DateTime?            @db.Date
+  valorHoraAula  Decimal?             @db.Decimal(10, 2)
+  formacao       String?              // formação acadêmica (texto livre)
+  // Currículo (PDF/DOC) guardado no banco como data URL; a listagem não carrega este campo.
+  curriculoNome  String?
+  curriculoTipo  String?
+  curriculoDados String?
+  cep            String?
+  logradouro     String?
+  numero         String?
+  complemento    String?
+  bairro         String?
+  cidade         String?
+  uf             String?              @db.Char(2)
+  ativo          Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   disciplinas  DisciplinaProfessor[]
   agendamentos Agendamento[]

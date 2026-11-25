@@ -157,12 +157,16 @@ async function main() {
         nome: prof.nome,
         especialidade: prof.especialidade,
         email: `${prof.nome.toLowerCase().replace(/[^a-z]/g, "")}@licao.com`,
+        telefone: `(15) 9${String(8100 + prof.id * 37).padStart(4, "0")}-${String(1000 + prof.id * 211).slice(0, 4)}`,
+        valorHoraAula: 60 + prof.id * 5,
       },
       create: {
         id: prof.id,
         nome: prof.nome,
         especialidade: prof.especialidade,
         email: `${prof.nome.toLowerCase().replace(/[^a-z]/g, "")}@licao.com`,
+        telefone: `(15) 9${String(8100 + prof.id * 37).padStart(4, "0")}-${String(1000 + prof.id * 211).slice(0, 4)}`,
+        valorHoraAula: 60 + prof.id * 5,
       },
     });
   }
@@ -212,6 +216,15 @@ async function main() {
     }
   }
   console.log(`✓ [Disciplina] ${DISCIPLINAS.length} Disciplinas cadastradas`);
+
+  // Professores e disciplinas foram gravados com id fixo: avança as sequências do autoincrement
+  // para o próximo cadastro feito pelo sistema não tentar reutilizar um id existente.
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"Professor"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "Professor"))`,
+  );
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('"Disciplina"', 'id'), (SELECT COALESCE(MAX(id), 1) FROM "Disciplina"))`,
+  );
 
   // 5. Alunos, Responsáveis e Registros de Pagamento
   const todosAlunos = criarSeedAlunos();

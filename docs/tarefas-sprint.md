@@ -19,9 +19,9 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 | 8 | Detalhes/Edição — Aluno Dependente | ✅ `aluno-dependente-dialog` | ✅ | Pronta — "Perfil Financeiro via Responsável" leva ao perfil do responsável |
 | 9 | Listagem de Responsáveis | ✅ `responsaveis` | ✅ `GET /api/responsaveis` | Pronta |
 | 10 | Detalhes/Edição de Responsável | ✅ `responsaveis/[id]` | ✅ `GET/PUT/DELETE /api/responsaveis/[id]` | Pronta |
-| 11 | Cadastro de Professor | ❌ | ❌ falta `POST /api/professores` | Falta tudo |
-| 12 | Listagem de Professores | ❌ | 🟡 só `GET /api/professores` | Falta a tela |
-| 13 | Detalhes/Edição de Professor | ❌ | ❌ falta `/api/professores/[id]` | Falta tudo |
+| 11 | Cadastro de Professor | ✅ `professores/novo` | ✅ `POST /api/professores` | Pronta |
+| 12 | Listagem de Professores | ✅ `professores` | ✅ `GET /api/professores` | Pronta — "Relatórios" fica desabilitado até existir o módulo |
+| 13 | Detalhes/Edição de Professor | ✅ `professores/[id]` | ✅ `GET/PUT/PATCH/DELETE /api/professores/[id]` | Pronta |
 | 14 | Cadastro de Disciplina | ✅ `disciplinas/nova` | ✅ `POST /api/disciplinas` | Pronta |
 | 15 | Listagem de Disciplinas | 🟡 `disciplinas` | ✅ | Se a API vier vazia ou falhar, mostra os **dados fictícios** de `_components/dados.ts`; exclusão ignora erro |
 | 16 | Detalhes/Edição de Disciplina | 🟡 `disciplinas/[id]/editar` | ✅ `PUT` | Carrega a disciplina e os professores dos **dados fictícios**, não da API |
@@ -29,7 +29,7 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 | 18 | Listagem de Planos de Aula | ✅ `planos` | ✅ | Pronta |
 | 19 | Detalhes/Edição de Plano de Aula | ✅ `planos/[id]`, `planos/[id]/editar` | ✅ | Pronta |
 
-**Resumo:** 14 de 17 telas prontas, 2 parciais (15, 16) e 3 por fazer: Professores (11, 12, 13).
+**Resumo:** 17 telas: 15 prontas e 2 parciais (15, 16 — Disciplinas).
 
 ---
 
@@ -51,11 +51,11 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 - [x] Base de Alunos: botão Exportar (CSV); Novo Aluno: rodapé Cancelar/Finalizar Cadastro.
 
 ### Professores (Fig. 11, 12 e 13) — branch `feature/professores`
-- [ ] Criar `features/professores/` (types, service, `professores.api.ts`, hooks, components), no padrão de `features/planos`.
-- [ ] Tela de cadastro `professores/novo` (conferir os campos no protótipo: dados pessoais, contato, disciplinas, disponibilidade/valor da hora se houver).
-- [ ] Tela de listagem `professores` com busca, filtro por disciplina/status e paginação.
-- [ ] Tela de detalhes/edição `professores/[id]` (ativar/inativar e disciplinas vinculadas).
-- [ ] `nav-config.ts`: `Professores` → `implementado: true`.
+- [x] Criar `features/professores/` (types, service, `professores.api.ts`, hooks, components), no padrão de `features/planos`.
+- [x] Tela de cadastro `professores/novo` (conferir os campos no protótipo: dados pessoais, contato, disciplinas, disponibilidade/valor da hora se houver).
+- [x] Tela de listagem `professores` com busca, filtro por disciplina/status e paginação.
+- [x] Tela de detalhes/edição `professores/[id]` (ativar/inativar e disciplinas vinculadas).
+- [x] `nav-config.ts`: `Professores` → `implementado: true`.
 
 ### Disciplinas (Fig. 15 e 16) — branch `fix/disciplinas-api`
 - [ ] Listagem: remover a volta aos dados fictícios; mostrar estado vazio e erro de verdade.
@@ -75,10 +75,10 @@ Marque `[x]` ao concluir e coloque seu nome na frente da tarefa que pegar.
 - [ ] `npm run lint` e `npm run build` sem erros antes de cada PR.
 
 ## 2. Back-end (rotas de API em `app/api`)
-- [ ] **Segurança:** as rotas `/api/alunos`, `/api/planos`, `/api/disciplinas`, `/api/professores` **não exigem login** (as de `/api/responsaveis` já exigem, via `exigirSessao()` de `lib/api-auth.ts`) (o `middleware.ts` só protege as páginas). Validar a sessão (`getSession()`) nelas ou incluir `/api` no middleware.
+- [ ] **Segurança:** as rotas `/api/alunos`, `/api/planos`, `/api/disciplinas` **não exigem login** (as de `/api/responsaveis` e `/api/professores` já exigem, via `exigirSessao()` de `lib/api-auth.ts`) (o `middleware.ts` só protege as páginas). Validar a sessão (`getSession()`) nelas ou incluir `/api` no middleware.
 - [x] `PATCH /api/responsaveis/[id]` para inativar/reativar (coluna nova `Responsavel.ativo`, migration `responsavel_ativo` — rode `npx prisma migrate dev` depois do pull).
 - [x] `GET/PUT/DELETE /api/responsaveis/[id]` (com checagem de login; o PUT atualiza nome/telefone/foto nos alunos vinculados; o DELETE bloqueia com 409 se houver dependentes).
-- [ ] `POST /api/professores` e `GET/PUT/DELETE /api/professores/[id]` (com vínculo de disciplinas).
+- [x] `POST /api/professores` e `GET/PUT/PATCH/DELETE /api/professores/[id]` (com login, vínculo de disciplinas e currículo em `/api/professores/[id]/curriculo`; o DELETE bloqueia com 409 se houver aulas na agenda). Migration `professor_cadastro_completo` — rode `npx prisma migrate dev` depois do pull.
 - [ ] Validação dos dados no servidor (campos obrigatórios, CPF, e-mail, CEP) e mensagens de erro padronizadas.
 - [ ] Tratar exclusões com vínculo (ex.: excluir responsável com dependentes → bloquear ou desvincular, conforme a regra decidida para o banco).
 
