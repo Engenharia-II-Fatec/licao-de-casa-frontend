@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirSessao } from "@/lib/api-auth";
 
 export async function GET() {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const alunos = await prisma.aluno.findMany({
       include: {
@@ -62,6 +66,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const body = await request.json().catch(() => null);
     if (!body || !body.name) {

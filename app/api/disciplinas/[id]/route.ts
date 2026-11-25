@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { exigirSessao } from "@/lib/api-auth";
 import type { Prisma } from "@prisma/client";
 import type { Area, Disciplina } from "@/features/disciplinas/types";
 
@@ -31,6 +32,9 @@ function mapearDisciplina(d: DisciplinaComRelacoes): Disciplina {
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { id } = await params;
     const numId = Number(id);
@@ -61,6 +65,9 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { id } = await params;
     const numId = Number(id);
@@ -124,6 +131,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
   try {
     const { id } = await params;
     const numId = Number(id);
