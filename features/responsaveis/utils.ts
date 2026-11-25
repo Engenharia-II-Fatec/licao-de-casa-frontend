@@ -1,4 +1,4 @@
-import { baixarCsv } from "@/lib/csv";
+import type { DadosExportacao } from "@/components/ui/exportar-menu";
 import type { FiltroStatusFinanceiro, ResponsavelResumo } from "./types";
 
 export const PLANO_TODOS = "Todos os planos";
@@ -59,11 +59,12 @@ export function filtrarResponsaveis(
 }
 
 /** Baixa a lista (já filtrada) em CSV. */
-export function exportarCsv(lista: ResponsavelResumo[]): void {
-  baixarCsv(
-    "responsaveis",
-    ["Nome", "Vínculo", "CPF", "E-mail", "Telefone", "Alunos vinculados", "Status financeiro", "Cadastrado em"],
-    lista.map((r) => [
+export function dadosExportacao(lista: ResponsavelResumo[]): DadosExportacao {
+  return {
+    arquivo: "responsaveis",
+    titulo: "Listagem de Responsáveis",
+    cabecalho: ["Nome", "Vínculo", "CPF", "E-mail", "Telefone", "Alunos vinculados", "Status financeiro", "Cadastrado em"],
+    linhas: lista.map((r) => [
       r.name,
       r.role,
       r.cpf ?? "",
@@ -73,5 +74,5 @@ export function exportarCsv(lista: ResponsavelResumo[]): void {
       statusFinanceiro(r),
       mesAno(r.createdAt),
     ]),
-  );
+  };
 }

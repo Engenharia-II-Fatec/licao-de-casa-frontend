@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ExportarMenu } from "@/components/ui/exportar-menu";
 import { Skeleton } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { useListaProfessores } from "../hooks";
 import { professoresService } from "../services";
 import type { FiltroSituacao, Professor, SituacaoProfessor } from "../types";
-import { exportarPdf, filtrarProfessores, valorHora } from "../utils";
+import { dadosExportacao, filtrarProfessores, valorHora } from "../utils";
 import { AvatarProfessor } from "./avatar-professor";
 
 const POR_PAGINA = 10;
@@ -33,8 +34,6 @@ function gerarBotoesPagina(atual: number, total: number): (number | "...")[] {
   return resultado;
 }
 
-const botaoFerramenta =
-  "flex items-center gap-2 rounded-full bg-surface-container-low px-4 py-2.5 text-sm font-bold text-on-surface transition hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Tela "Gestão de Professores" — listagem (Figura 12). */
 export function ProfessoresListagem() {
@@ -80,90 +79,72 @@ export function ProfessoresListagem() {
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center md:gap-6">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl">Gestão de Professores</h1>
-          <p className="mt-1 text-sm font-medium text-primary sm:text-base">
-            Administre o corpo docente e suas especialidades
+          <p className="mt-1 text-sm text-on-surface-variant sm:text-base">
+            Administre o corpo docente e suas especialidades.
           </p>
         </div>
-        <Link
-          href="/professores/novo"
-          className="flex w-fit items-center gap-2.5 rounded-full bg-linear-to-br from-primary to-primary-container px-6 py-3.5 font-bold text-white shadow-cta transition-all hover:-translate-y-0.5 hover:shadow-cta-hover active:scale-95 sm:px-8 sm:py-4"
-        >
-          <span className="material-symbols-outlined text-xl">person_add</span>
-          Cadastrar Novo Professor
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <ExportarMenu
+            disabled={carregando || filtrados.length === 0}
+            dados={() => dadosExportacao(filtrados)}
+          />
+          <Link
+            href="/professores/novo"
+            className="flex items-center gap-2.5 rounded-full bg-linear-to-br from-primary to-primary-container px-6 py-3.5 font-bold text-white shadow-cta transition-all hover:-translate-y-0.5 hover:shadow-cta-hover active:scale-95 sm:px-8 sm:py-4"
+          >
+            <span className="material-symbols-outlined text-xl">person_add</span>
+            Novo Professor
+          </Link>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-3xl bg-surface-container-lowest shadow-ambient">
-        {/* Busca, filtro e ações da lista */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
-          <div className="flex min-w-0 flex-[1_1_20rem] flex-wrap gap-3">
-            <div className="group relative min-w-56 flex-1 lg:max-w-md">
-              <span className="material-symbols-outlined pointer-events-none absolute inset-y-0 left-4 my-auto h-fit text-xl text-on-surface-variant/50 group-focus-within:text-primary">
-                filter_list
-              </span>
-              <input
-                type="text"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Filtrar por nome ou disciplina..."
-                aria-label="Filtrar por nome, disciplina, e-mail, CPF ou telefone"
-                className="w-full rounded-full bg-surface-container-low py-3 pl-12 pr-10 text-sm font-medium text-on-surface outline-none transition placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30"
-              />
-              {busca && (
-                <button
-                  type="button"
-                  onClick={() => setBusca("")}
-                  aria-label="Limpar busca"
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-on-surface-variant/60 hover:text-on-surface"
-                >
-                  <span className="material-symbols-outlined text-xl">close</span>
-                </button>
-              )}
-            </div>
-            <div className="relative w-full sm:w-auto">
-              <select
-                value={situacao}
-                onChange={(e) => setSituacao(e.target.value as FiltroSituacao)}
-                aria-label="Situação"
-                className={`w-full appearance-none rounded-full bg-surface-container-low py-3 pl-4 pr-10 text-sm font-semibold text-on-surface-variant outline-none transition focus:ring-2 focus:ring-primary/30 sm:w-44 ${
-                  situacao !== "Todos" ? "ring-2 ring-primary-container" : ""
-                }`}
-              >
-                {SITUACOES.map((s) => (
-                  <option key={s} value={s}>
-                    {s === "Todos" ? "Situação" : s}
-                  </option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined pointer-events-none absolute inset-y-0 right-3 my-auto h-fit text-on-surface-variant">
-                expand_more
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      {/* Busca e filtros */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+        <div className="group relative sm:col-span-2 lg:col-span-8">
+          <span className="material-symbols-outlined pointer-events-none absolute inset-y-0 left-4 my-auto h-fit text-2xl text-on-surface-variant/50 group-focus-within:text-primary">
+            search
+          </span>
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Pesquisar por nome ou disciplina..."
+            aria-label="Pesquisar por nome, disciplina, e-mail, CPF ou telefone"
+            className="w-full rounded-2xl bg-surface-container-low py-3.5 pl-12 pr-10 text-sm font-medium text-on-surface outline-none transition placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 sm:py-4 sm:text-base"
+          />
+          {busca && (
             <button
               type="button"
-              onClick={() => {
-                if (!exportarPdf(filtrados)) toast.error("Permita pop-ups para exportar o PDF.");
-              }}
-              disabled={carregando || filtrados.length === 0}
-              className={botaoFerramenta}
+              onClick={() => setBusca("")}
+              aria-label="Limpar busca"
+              className="absolute inset-y-0 right-0 flex items-center pr-4 text-on-surface-variant/60 hover:text-on-surface"
             >
-              <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
-              Exportar PDF
+              <span className="material-symbols-outlined text-xl">close</span>
             </button>
-            <button
-              type="button"
-              disabled
-              title="O módulo de Relatórios ainda não foi implementado"
-              className={botaoFerramenta}
-            >
-              <span className="material-symbols-outlined text-lg">bar_chart</span>
-              Relatórios
-            </button>
-          </div>
+          )}
         </div>
+        <div className="relative sm:col-span-2 lg:col-span-4">
+          <select
+            value={situacao}
+            onChange={(e) => setSituacao(e.target.value as FiltroSituacao)}
+            aria-label="Situação"
+            className={`w-full appearance-none rounded-2xl bg-surface-container-low py-3.5 pl-4 pr-10 text-sm font-semibold text-on-surface-variant outline-none transition focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/30 sm:py-4 ${
+              situacao !== "Todos" ? "ring-2 ring-primary-container" : ""
+            }`}
+          >
+            {SITUACOES.map((s) => (
+              <option key={s} value={s}>
+                {s === "Todos" ? "Situação" : s}
+              </option>
+            ))}
+          </select>
+          <span className="material-symbols-outlined pointer-events-none absolute inset-y-0 right-3 my-auto h-fit text-on-surface-variant">
+            expand_more
+          </span>
+        </div>
+      </div>
 
+      <div className="overflow-hidden rounded-3xl bg-surface-container-lowest pt-2 shadow-ambient">
         {/* Tabela */}
         <div className="overflow-x-auto px-2 sm:px-4">
           <table className="w-full border-separate border-spacing-y-2 text-left">

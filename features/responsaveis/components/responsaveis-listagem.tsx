@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ExportarMenu } from "@/components/ui/exportar-menu";
 import { Skeleton } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { useListaResponsaveis } from "../hooks";
@@ -10,7 +11,7 @@ import { responsaveisDetalheService } from "../services";
 import type { FiltroStatusFinanceiro, ResponsavelResumo } from "../types";
 import {
   PLANO_TODOS,
-  exportarCsv,
+  dadosExportacao,
   filtrarResponsaveis,
   mesAno,
   planosDosAlunos,
@@ -96,15 +97,10 @@ export function ResponsaveisListagem() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => exportarCsv(filtrados)}
+          <ExportarMenu
             disabled={carregando || filtrados.length === 0}
-            className="flex items-center gap-2 rounded-full bg-surface-container-lowest px-5 py-3.5 text-sm font-bold text-on-surface shadow-ambient transition hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-50 sm:py-4"
-          >
-            <span className="material-symbols-outlined text-xl">download</span>
-            Exportar
-          </button>
+            dados={() => dadosExportacao(filtrados)}
+          />
           <Link
             href="/responsaveis/novo"
             className="flex items-center gap-2.5 rounded-full bg-linear-to-br from-primary to-primary-container px-6 py-3.5 font-bold text-white shadow-cta transition-all hover:-translate-y-0.5 hover:shadow-cta-hover active:scale-95 sm:px-8 sm:py-4"

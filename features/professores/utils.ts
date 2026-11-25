@@ -1,3 +1,4 @@
+import type { DadosExportacao } from "@/components/ui/exportar-menu";
 import { formatarMoeda, parseMoeda } from "@/lib/format";
 import type {
   CurriculoArquivo,
@@ -48,45 +49,21 @@ export function filtrarProfessores(
   });
 }
 
-function escaparHtml(texto: string): string {
-  return texto.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
-
-/**
- * "Exportar PDF": abre a lista (já filtrada) numa janela pronta para impressão.
- * No diálogo de impressão do navegador, escolha "Salvar como PDF".
- */
-export function exportarPdf(lista: Professor[]): boolean {
-  const janela = window.open("", "_blank");
-  if (!janela) return false;
-  const linhas = lista
-    .map(
-      (p) => `<tr>
-        <td>${escaparHtml(p.nome)}</td>
-        <td>${escaparHtml(p.situacao)}</td>
-        <td>${escaparHtml(p.disciplinas.map((d) => d.nome).join(", ") || "—")}</td>
-        <td>${escaparHtml(valorHora(p.valorHoraAula))}</td>
-        <td>${escaparHtml(p.email ?? "—")}<br>${escaparHtml(p.telefone ?? "")}</td>
-      </tr>`,
-    )
-    .join("");
-  janela.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-    <title>Professores — Espaço Lição de Casa</title>
-    <style>
-      body{font-family:"Plus Jakarta Sans",Arial,sans-serif;color:#1b1c1c;margin:32px}
-      h1{font-size:20px;margin:0}p{color:#584237;font-size:12px;margin:4px 0 20px}
-      table{width:100%;border-collapse:collapse;font-size:12px}
-      th{text-align:left;text-transform:uppercase;font-size:10px;letter-spacing:.08em;color:#584237;background:#f6f3f2;padding:8px}
-      td{padding:8px;vertical-align:top}tr:nth-child(even) td{background:#fbf9f8}
-    </style></head><body>
-    <h1>Gestão de Professores</h1>
-    <p>Espaço Lição de Casa · ${lista.length} ${lista.length === 1 ? "professor" : "professores"} · gerado em ${new Date().toLocaleString("pt-BR")}</p>
-    <table><thead><tr><th>Professor</th><th>Situação</th><th>Disciplinas</th><th>Valor hora/aula</th><th>Contato</th></tr></thead>
-    <tbody>${linhas}</tbody></table></body></html>`);
-  janela.document.close();
-  janela.focus();
-  janela.print();
-  return true;
+/** Linhas da exportação (planilha ou PDF) com a lista já filtrada. */
+export function dadosExportacao(lista: Professor[]): DadosExportacao {
+  return {
+    arquivo: "professores",
+    titulo: "Gestão de Professores",
+    cabecalho: ["Professor", "Situação", "Disciplinas", "Valor hora/aula", "E-mail", "Telefone"],
+    linhas: lista.map((p) => [
+      p.nome,
+      p.situacao,
+      p.disciplinas.map((d) => d.nome).join(", "),
+      valorHora(p.valorHoraAula),
+      p.email ?? "",
+      p.telefone ?? "",
+    ]),
+  };
 }
 
 // ---------------------------------------------------------------------------
