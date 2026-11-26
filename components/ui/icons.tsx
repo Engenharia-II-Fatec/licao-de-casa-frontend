@@ -210,3 +210,18 @@ export const IconAward = (p: IconProps) => (
     <path d="M8.5 14.5 7 22l5-3 5 3-1.5-7.5" />
   </Svg>
 );
+
+/* Status (inativar / reativar): nenhum cadastro é excluído de forma permanente */
+export const IconBan = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M5.6 5.6l12.8 12.8" />
+  </Svg>
+);
+
+export const IconRestore = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 12a9 9 0 1 0 3-6.7" />
+    <path d="M3 4v5h5" />
+  </Svg>
+);

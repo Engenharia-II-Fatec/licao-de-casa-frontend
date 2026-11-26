@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { IconButton, iconButtonClasses } from "@/components/ui/icon-button";
-import { IconEye, IconPencil, IconTrash } from "@/components/ui/icons";
+import { IconEye, IconPencil, IconBan, IconRestore } from "@/components/ui/icons";
 import { formatarMoeda } from "@/lib/format";
 import type { Plano } from "../types";
 import { StatusBadge } from "./status-badge";
 
 export function PlanosTable({
   planos,
-  onExcluir,
+  onAlterarStatus,
 }: {
   planos: Plano[];
-  onExcluir: (plano: Plano) => void;
+  /** Inativa ou reativa (nenhum plano é excluído). */
+  onAlterarStatus: (plano: Plano) => void;
 }) {
   const colunas: Column<Plano>[] = [
     {
@@ -69,14 +70,25 @@ export function PlanosTable({
           >
             <IconPencil className="size-5" />
           </Link>
-          <IconButton
-            tone="danger"
-            aria-label={`Excluir ${p.nome}`}
-            title="Excluir"
-            onClick={() => onExcluir(p)}
-          >
-            <IconTrash className="size-5" />
-          </IconButton>
+          {p.status === "INATIVO" ? (
+            <IconButton
+              tone="secondary"
+              aria-label={`Reativar ${p.nome}`}
+              title="Reativar"
+              onClick={() => onAlterarStatus(p)}
+            >
+              <IconRestore className="size-5" />
+            </IconButton>
+          ) : (
+            <IconButton
+              tone="danger"
+              aria-label={`Inativar ${p.nome}`}
+              title="Inativar"
+              onClick={() => onAlterarStatus(p)}
+            >
+              <IconBan className="size-5" />
+            </IconButton>
+          )}
         </div>
       ),
     },

@@ -175,19 +175,48 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
+/**
+ * Regra de negócio: nenhum cadastro é excluído de forma permanente.
+ * DELETE inativa o aluno (status "Inativo") e mantém dados e histórico de pagamentos;
+ * PATCH { ativo } inativa ou reativa.
+ */
+async function alterarStatusAluno(id: string, ativo: boolean) {
+  const existe = await prisma.aluno.findUnique({ where: { id }, select: { id: true } });
+  if (!existe) return NextResponse.json({ error: "Aluno não encontrado." }, { status: 404 });
+  const atualizado = await prisma.aluno.update({
+    where: { id },
+    data: { status: ativo ? "Ativo" : "Inativo" },
+    select: { id: true, name: true, status: true },
+  });
+  return NextResponse.json(atualizado);
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
+  try {
+    const { id } = await params;
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body.ativo !== "boolean") {
+      return NextResponse.json({ error: 'Informe "ativo": true ou false.' }, { status: 400 });
+    }
+    return await alterarStatusAluno(id, body.ativo);
+  } catch (error) {
+    console.error("Erro ao alterar status do aluno:", error);
+    return NextResponse.json({ error: "Erro ao alterar o status do aluno." }, { status: 500 });
+  }
+}
+
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const negado = await exigirSessao();
   if (negado) return negado;
 
   try {
     const { id } = await params;
-    await prisma.aluno.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
+    return await alterarStatusAluno(id, false);
   } catch (error) {
-    console.error("Erro ao excluir aluno:", error);
-    return NextResponse.json({ error: "Erro ao excluir aluno." }, { status: 500 });
+    console.error("Erro ao inativar aluno:", error);
+    return NextResponse.json({ error: "Erro ao inativar o aluno." }, { status: 500 });
   }
 }

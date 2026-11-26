@@ -84,15 +84,24 @@ export class PlanosApiService implements PlanosService {
     }
   }
 
-  async excluir(id: string): Promise<void> {
+  async alterarStatus(id: string, ativo: boolean): Promise<Plano> {
+    let res: Response;
     try {
-      const res = await fetch(`/api/planos/${encodeURIComponent(id)}`, {
-        method: "DELETE",
+      res = await fetch(`/api/planos/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo }),
       });
-      if (!res.ok) throw new Error("Erro ao excluir plano.");
-      await this.fallback.excluir(id).catch(() => null);
     } catch {
-      await this.fallback.excluir(id);
+      return this.fallback.alterarStatus(id, ativo);
     }
+    if (res.status === 404) throw new PlanoNaoEncontradoError();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Erro ao alterar o status do plano.");
+    }
+    const salvo: Plano = await res.json();
+    await this.fallback.alterarStatus(id, ativo).catch(() => null);
+    return salvo;
   }
 }

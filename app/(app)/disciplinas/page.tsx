@@ -20,8 +20,9 @@ export default function ListagemDisciplinas() {
   const [busca, setBusca] = useState("");
   const [area, setArea] = useState<Area | "todas">("todas");
   const [pagina, setPagina] = useState(1);
-  const [paraExcluir, setParaExcluir] = useState<Disciplina | null>(null);
-  const [excluindo, setExcluindo] = useState(false);
+  // Nenhuma disciplina é excluída: a lixeira virou Inativar/Reativar.
+  const [paraStatus, setParaStatus] = useState<Disciplina | null>(null);
+  const [salvandoStatus, setSalvandoStatus] = useState(false);
 
   const filtradas = lista.filter(
     (d) =>
@@ -35,21 +36,29 @@ export default function ListagemDisciplinas() {
     paginaAtual * POR_PAGINA
   );
 
-  async function confirmarExclusao() {
-    if (!paraExcluir) return;
-    setExcluindo(true);
+  async function confirmarStatus() {
+    if (!paraStatus) return;
+    const ativar = !paraStatus.ativa;
+    setSalvandoStatus(true);
     try {
-      await disciplinasService.excluir(paraExcluir.id);
-      setDisciplinas((atual) => (atual ?? []).filter((d) => d.id !== paraExcluir.id));
-      toast.success(`Disciplina ${paraExcluir.nome} excluída.`);
+      await disciplinasService.alterarStatus(paraStatus.id, ativar);
+      setDisciplinas((atual) =>
+        (atual ?? []).map((d) => (d.id === paraStatus.id ? { ...d, ativa: ativar } : d)),
+      );
+      toast.success(`Disciplina ${paraStatus.nome} ${ativar ? "reativada" : "inativada"}.`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível excluir a disciplina.");
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : `Não foi possível ${ativar ? "reativar" : "inativar"} a disciplina.`,
+      );
     } finally {
       // Fecha o diálogo também no erro: o modal ficaria por cima do toast.
-      setParaExcluir(null);
-      setExcluindo(false);
+      setParaStatus(null);
+      setSalvandoStatus(false);
     }
   }
+
 
   return (
     <div className="text-neutral-900">
@@ -180,11 +189,16 @@ export default function ListagemDisciplinas() {
                             <IconeEditar />
                           </Link>
                           <button
-                            onClick={() => setParaExcluir(d)}
-                            aria-label={`Excluir ${d.nome}`}
-                            className="rounded-full bg-neutral-100 p-2 text-neutral-600 hover:bg-red-100 hover:text-red-600"
+                            onClick={() => setParaStatus(d)}
+                            aria-label={`${d.ativa ? "Inativar" : "Reativar"} ${d.nome}`}
+                            title={d.ativa ? "Inativar" : "Reativar"}
+                            className={`rounded-full bg-neutral-100 p-2 text-neutral-600 ${
+                              d.ativa
+                                ? "hover:bg-red-100 hover:text-red-600"
+                                : "hover:bg-green-100 hover:text-green-700"
+                            }`}
                           >
-                            <IconeLixeira />
+                            {d.ativa ? <IconeInativar /> : <IconeReativar />}
                           </button>
                         </div>
                       </div>
@@ -236,18 +250,26 @@ export default function ListagemDisciplinas() {
       </div>
 
       <ConfirmDialog
-        open={paraExcluir !== null}
-        title="Excluir disciplina?"
+        open={paraStatus !== null}
+        tone={paraStatus?.ativa === false ? "primary" : "danger"}
+        title={paraStatus?.ativa === false ? "Reativar disciplina?" : "Inativar disciplina?"}
         description={
-          <>
-            A disciplina <strong>{paraExcluir?.nome}</strong> será excluída, junto com os vínculos
-            de professores e as matrículas dos alunos. Esta ação não pode ser desfeita.
-          </>
+          paraStatus?.ativa === false ? (
+            <>
+              A disciplina <strong>{paraStatus?.nome}</strong> volta a ficar ativa.
+            </>
+          ) : (
+            <>
+              A disciplina <strong>{paraStatus?.nome}</strong> passa a ficar inativa. Nada é apagado:
+              os vínculos com professores e as matrículas dos alunos continuam guardados, e ela pode
+              ser reativada depois.
+            </>
+          )
         }
-        confirmLabel="Excluir"
-        loading={excluindo}
-        onConfirm={confirmarExclusao}
-        onClose={() => setParaExcluir(null)}
+        confirmLabel={paraStatus?.ativa === false ? "Reativar" : "Inativar"}
+        loading={salvandoStatus}
+        onConfirm={confirmarStatus}
+        onClose={() => setParaStatus(null)}
       />
     </div>
   );
@@ -261,13 +283,20 @@ function IconeEditar() {
   );
 }
 
-function IconeLixeira() {
+function IconeInativar() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6M14 11v6" />
-      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M5.6 5.6l12.8 12.8" />
+    </svg>
+  );
+}
+
+function IconeReativar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <polyline points="3 4 3 9 8 9" />
     </svg>
   );
 }

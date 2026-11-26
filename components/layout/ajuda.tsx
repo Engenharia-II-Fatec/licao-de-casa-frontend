@@ -106,9 +106,10 @@ function Conteudo({ topico }: { topico: TopicoAjuda }) {
             ou escolha o responsável em <strong>Editar Aluno</strong>. Depois clique em{" "}
             <strong>Salvar Alterações</strong>.
           </Pergunta>
-          <Pergunta titulo="Excluir ou inativar?">
-            A exclusão apaga o cadastro e o histórico de pagamentos e não pode ser desfeita. Se o aluno
-            só deixou de frequentar, altere o status para <strong>Inativo</strong>.
+          <Pergunta titulo="Por que não dá para excluir um cadastro?">
+            Por regra da escola, nenhum cadastro é apagado. O botão de inativar (alunos, responsáveis,
+            professores, disciplinas e planos) só marca o registro como <strong>Inativo</strong> e
+            mantém o histórico. Para voltar a usar, clique em <strong>Reativar</strong>.
           </Pergunta>
           <Pergunta titulo="Atalhos">
             <kbd className="rounded bg-surface-container-high px-1.5 font-mono">Esc</kbd> fecha janelas;{" "}

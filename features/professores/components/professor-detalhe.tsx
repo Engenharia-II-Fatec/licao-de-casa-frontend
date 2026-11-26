@@ -48,7 +48,7 @@ export function ProfessorDetalheTela({ params }: { params: Promise<{ id: string 
     return (
       <EmptyState
         title="Professor não encontrado"
-        description="O cadastro pode ter sido excluído ou o link está incorreto."
+        description="O cadastro não foi encontrado. Confira se o link está correto."
         action={voltar}
       />
     );

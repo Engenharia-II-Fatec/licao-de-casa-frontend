@@ -136,21 +136,51 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
+/**
+ * Regra de negócio: nenhum cadastro é excluído de forma permanente.
+ * DELETE inativa a disciplina (ativa = false) e mantém vínculos com professores e alunos;
+ * PATCH { ativo } inativa ou reativa.
+ */
+async function alterarStatusDisciplina(idTexto: string, ativo: boolean) {
+  const id = Number(idTexto);
+  const existe = Number.isInteger(id)
+    ? await prisma.disciplina.findUnique({ where: { id }, select: { id: true } })
+    : null;
+  if (!existe) return NextResponse.json({ error: "Disciplina não encontrada." }, { status: 404 });
+  const atualizada = await prisma.disciplina.update({
+    where: { id },
+    data: { ativa: ativo },
+    select: { id: true, nome: true, ativa: true },
+  });
+  return NextResponse.json(atualizada);
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
+  try {
+    const { id } = await params;
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body.ativo !== "boolean") {
+      return NextResponse.json({ error: 'Informe "ativo": true ou false.' }, { status: 400 });
+    }
+    return await alterarStatusDisciplina(id, body.ativo);
+  } catch (error) {
+    console.error("Erro ao alterar status da disciplina:", error);
+    return NextResponse.json({ error: "Erro ao alterar o status da disciplina." }, { status: 500 });
+  }
+}
+
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const negado = await exigirSessao();
   if (negado) return negado;
 
   try {
     const { id } = await params;
-    const numId = Number(id);
-
-    await prisma.disciplina.delete({
-      where: { id: numId },
-    });
-
-    return NextResponse.json({ success: true });
+    return await alterarStatusDisciplina(id, false);
   } catch (error) {
-    console.error("Erro ao excluir disciplina:", error);
-    return NextResponse.json({ error: "Erro ao excluir disciplina." }, { status: 500 });
+    console.error("Erro ao inativar disciplina:", error);
+    return NextResponse.json({ error: "Erro ao inativar a disciplina." }, { status: 500 });
   }
 }

@@ -1,6 +1,5 @@
 import type { ResponsavelDetalhe, ResponsavelInput, ResponsavelResumo } from "../types";
 import {
-  ResponsavelComDependentesError,
   ResponsavelNaoEncontradoError,
   type ResponsaveisDetalheService,
 } from "./responsaveis.service";
@@ -56,14 +55,4 @@ export class ResponsaveisApiService implements ResponsaveisDetalheService {
     return res.json();
   }
 
-  async excluir(id: string): Promise<void> {
-    const res = await fetch(`/api/responsaveis/${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (res.status === 404) throw new ResponsavelNaoEncontradoError();
-    if (res.status === 409) {
-      throw new ResponsavelComDependentesError(
-        await mensagemDeErro(res, "O responsável possui alunos vinculados."),
-      );
-    }
-    if (!res.ok) throw new Error(await mensagemDeErro(res, "Erro ao excluir o responsável."));
-  }
 }

@@ -1,6 +1,5 @@
 import type { DisciplinaOpcao, Professor, ProfessorDetalhe, ProfessorInput } from "../types";
 import {
-  ProfessorComAulasError,
   ProfessorNaoEncontradoError,
   type ProfessoresService,
 } from "./professores.service";
@@ -58,14 +57,6 @@ export class ProfessoresApiService implements ProfessoresService {
     return res.json();
   }
 
-  async excluir(id: number): Promise<void> {
-    const res = await fetch(`/api/professores/${id}`, { method: "DELETE" });
-    if (res.status === 404) throw new ProfessorNaoEncontradoError();
-    if (res.status === 409) {
-      throw new ProfessorComAulasError(await mensagemDeErro(res, "O professor tem aulas registradas."));
-    }
-    if (!res.ok) throw new Error(await mensagemDeErro(res, "Erro ao excluir o professor."));
-  }
 
   async listarDisciplinas(): Promise<DisciplinaOpcao[]> {
     const res = await fetch("/api/disciplinas", { cache: "no-store" });

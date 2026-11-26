@@ -49,10 +49,14 @@ export class DisciplinasApiService implements DisciplinasService {
     return res.json();
   }
 
-  async excluir(id: number): Promise<void> {
-    const res = await fetch(`/api/disciplinas/${id}`, { method: "DELETE" });
+  async alterarStatus(id: number, ativo: boolean): Promise<void> {
+    const res = await fetch(`/api/disciplinas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativo }),
+    });
     if (res.status === 404) throw new DisciplinaNaoEncontradaError();
-    if (!res.ok) throw new Error(await mensagemDeErro(res, "Erro ao excluir a disciplina."));
+    if (!res.ok) throw new Error(await mensagemDeErro(res, "Erro ao alterar o status da disciplina."));
   }
 
   async listarProfessores(): Promise<ProfessorOpcao[]> {

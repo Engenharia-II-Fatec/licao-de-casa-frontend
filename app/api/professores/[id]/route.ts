@@ -148,7 +148,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 }
 
-/** Só exclui professor sem aulas agendadas ou realizadas, para não perder o histórico. */
+/**
+ * Regra de negócio: nenhum cadastro é excluído de forma permanente.
+ * DELETE só inativa o professor (o mesmo que PATCH { ativo: false }); vínculos com
+ * disciplinas e aulas da agenda continuam no histórico.
+ */
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const negado = await exigirSessao();
   if (negado) return negado;
@@ -156,37 +160,22 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   try {
     const id = lerId((await params).id);
     if (!id) return naoEncontrado();
-    const professor = await prisma.professor.findUnique({
+    const atual = await prisma.professor.findUnique({
       where: { id },
-      select: {
-        disciplinas: { select: { disciplinaId: true } },
-        _count: { select: { agendamentos: true } },
-      },
+      select: { disciplinas: { select: { disciplinaId: true } } },
     });
-    if (!professor) return naoEncontrado();
-
-    const qtd = professor._count.agendamentos;
-    if (qtd > 0) {
-      return NextResponse.json(
-        {
-          error: `Não é possível excluir: o professor tem ${qtd} ${
-            qtd === 1 ? "aula registrada" : "aulas registradas"
-          } na agenda. Use "Inativar Professor" para mantê-lo sem uso.`,
-        },
-        { status: 409 },
-      );
-    }
+    if (!atual) return naoEncontrado();
 
     await prisma.$transaction(async (tx) => {
-      await tx.professor.delete({ where: { id } }); // vínculos com disciplinas saem em cascata
+      await tx.professor.update({ where: { id }, data: { ativo: false } });
       await atualizarProfessorNomeDasDisciplinas(
         tx,
-        professor.disciplinas.map((d) => d.disciplinaId),
+        atual.disciplinas.map((d) => d.disciplinaId),
       );
     });
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json(await buscarDetalhe(id));
   } catch (error) {
-    console.error("Erro ao excluir professor:", error);
-    return NextResponse.json({ error: "Erro ao excluir professor." }, { status: 500 });
+    console.error("Erro ao inativar professor:", error);
+    return NextResponse.json({ error: "Erro ao inativar professor." }, { status: 500 });
   }
 }

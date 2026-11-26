@@ -63,20 +63,24 @@ export class AlunosApiService implements AlunosService {
     return salvo;
   }
 
-  async excluir(id: string): Promise<void> {
+  async alterarStatus(id: string, ativo: boolean): Promise<void> {
     let res: Response;
     try {
-      res = await fetch(`/api/alunos/${encodeURIComponent(id)}`, { method: "DELETE" });
+      res = await fetch(`/api/alunos/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo }),
+      });
     } catch {
-      await this.fallback.excluir(id);
+      await this.fallback.alterarStatus(id, ativo);
       return;
     }
-    // Antes, uma falha do servidor "excluía" só no navegador e o aluno voltava ao recarregar.
+    if (res.status === 404) throw new AlunoNaoEncontradoError();
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || "Erro ao excluir aluno.");
+      throw new Error(err.error || "Erro ao alterar o status do aluno.");
     }
-    await this.fallback.excluir(id).catch(() => null);
+    await this.fallback.alterarStatus(id, ativo).catch(() => null);
   }
 }
 

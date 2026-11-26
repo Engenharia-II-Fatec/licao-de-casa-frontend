@@ -118,36 +118,29 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 }
 
-/** Só exclui responsável sem dependentes, para nenhum aluno ficar sem responsável financeiro. */
+/**
+ * Regra de negócio: nenhum cadastro é excluído de forma permanente.
+ * DELETE só inativa o responsável (o mesmo que PATCH { ativo: false }); dependentes e
+ * histórico financeiro continuam vinculados.
+ */
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const negado = await exigirSessao();
   if (negado) return negado;
 
   try {
     const { id } = await params;
-    const responsavel = await prisma.responsavel.findUnique({
-      where: { id },
-      include: { _count: { select: { alunos: true } } },
-    });
-    if (!responsavel) {
+    const existe = await prisma.responsavel.findUnique({ where: { id }, select: { id: true } });
+    if (!existe) {
       return NextResponse.json({ error: "Responsável não encontrado." }, { status: 404 });
     }
-    const qtd = responsavel._count.alunos;
-    if (qtd > 0) {
-      return NextResponse.json(
-        {
-          error: `Não é possível excluir: ${qtd} ${
-            qtd === 1 ? "aluno está vinculado" : "alunos estão vinculados"
-          } a este responsável. Exclua os alunos ou vincule-os a outro responsável antes.`,
-        },
-        { status: 409 },
-      );
-    }
-
-    await prisma.responsavel.delete({ where: { id } });
-    return new NextResponse(null, { status: 204 });
+    const atualizado = await prisma.responsavel.update({
+      where: { id },
+      data: { ativo: false },
+      include: INCLUIR_DETALHE,
+    });
+    return NextResponse.json(formatarResponsavelDetalhe(atualizado));
   } catch (error) {
-    console.error("Erro ao excluir responsável:", error);
-    return NextResponse.json({ error: "Erro ao excluir responsável." }, { status: 500 });
+    console.error("Erro ao inativar responsável:", error);
+    return NextResponse.json({ error: "Erro ao inativar responsável." }, { status: 500 });
   }
 }

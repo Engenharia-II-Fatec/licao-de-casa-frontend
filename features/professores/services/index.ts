@@ -2,7 +2,6 @@ import { ProfessoresApiService } from "./professores.api";
 import type { ProfessoresService } from "./professores.service";
 
 export {
-  ProfessorComAulasError,
   ProfessorNaoEncontradoError,
   type ProfessoresService,
 } from "./professores.service";

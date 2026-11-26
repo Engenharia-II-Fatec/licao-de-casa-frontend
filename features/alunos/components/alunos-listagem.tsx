@@ -12,7 +12,7 @@ import { ehTitular, filtrarAlunos } from "../utils";
 import { AlunoDependenteDialog } from "./aluno-dependente-dialog";
 import { AlunoEditarDialog } from "./aluno-editar-dialog";
 import { AlunoTitularDialog } from "./aluno-titular-dialog";
-import { ExcluirAlunoDialog } from "./excluir-aluno-dialog";
+import { StatusAlunoDialog } from "./status-aluno-dialog";
 import { FiltrosDialog } from "./filtros-dialog";
 
 const ALUNOS_POR_PAGINA = 10;
@@ -43,7 +43,7 @@ export function AlunosListagem() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [studentDetails, setStudentDetails] = useState<Aluno | null>(null);
   const [editingStudent, setEditingStudent] = useState<Aluno | null>(null);
-  const [studentToDelete, setStudentToDelete] = useState<Aluno | null>(null);
+  const [alunoParaStatus, setAlunoParaStatus] = useState<Aluno | null>(null);
 
   const filteredStudents = useMemo(
     () =>
@@ -358,15 +358,29 @@ export function AlunosListagem() {
                                           edit_note
                                         </span>
                                       </button>
-                                      <button
-                                        onClick={() => setStudentToDelete(student)}
-                                        className="p-2 text-[#ba1a1a] hover:bg-[#ffdad6]/60 rounded-xl transition-all active:scale-95 cursor-pointer"
-                                        title="Excluir"
-                                      >
-                                        <span className="material-symbols-outlined text-[20px]">
-                                          delete_outline
-                                        </span>
-                                      </button>
+                                      {student.status === 'Inativo' ? (
+                                        <button
+                                          onClick={() => setAlunoParaStatus(student)}
+                                          className="p-2 text-[#006a65] hover:bg-[#cbfaf6]/70 rounded-xl transition-all active:scale-95 cursor-pointer"
+                                          title="Reativar"
+                                          aria-label={`Reativar ${student.name}`}
+                                        >
+                                          <span className="material-symbols-outlined text-[20px]">
+                                            person_check
+                                          </span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => setAlunoParaStatus(student)}
+                                          className="p-2 text-[#ba1a1a] hover:bg-[#ffdad6]/60 rounded-xl transition-all active:scale-95 cursor-pointer"
+                                          title="Inativar"
+                                          aria-label={`Inativar ${student.name}`}
+                                        >
+                                          <span className="material-symbols-outlined text-[20px]">
+                                            person_off
+                                          </span>
+                                        </button>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -461,11 +475,11 @@ export function AlunosListagem() {
         />
       )}
 
-      {studentToDelete && (
-        <ExcluirAlunoDialog
-          aluno={studentToDelete}
-          onClose={() => setStudentToDelete(null)}
-          onDeleted={recarregar}
+      {alunoParaStatus && (
+        <StatusAlunoDialog
+          aluno={alunoParaStatus}
+          onClose={() => setAlunoParaStatus(null)}
+          onChanged={recarregar}
         />
       )}
 

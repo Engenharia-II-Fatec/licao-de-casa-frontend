@@ -2,26 +2,29 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/empty-state";
-import { IconPencil, IconTrash } from "@/components/ui/icons";
+import { IconBan, IconPencil, IconRestore } from "@/components/ui/icons";
 import { PageHeader } from "@/components/ui/page-header";
 import { formatarDataHora } from "@/lib/format";
 import { usePlano } from "../hooks";
-import { ExcluirPlanoDialog } from "./excluir-plano-dialog";
+import type { Plano } from "../types";
+import { StatusPlanoDialog } from "./status-plano-dialog";
 import { PlanoNaoEncontrado } from "./plano-nao-encontrado";
 import { PlanoPreviewCard } from "./plano-preview-card";
 import { StatusBadge } from "./status-badge";
 
 export function PlanoDetalhe({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
-  const { plano, carregando, erro } = usePlano(id);
-  const [excluindo, setExcluindo] = useState(false);
+  const { plano: planoCarregado, carregando, erro } = usePlano(id);
+  const [alterandoStatus, setAlterandoStatus] = useState(false);
+  // Plano devolvido após inativar/reativar (o hook não recarrega sozinho).
+  const [planoAlterado, setPlanoAlterado] = useState<Plano | null>(null);
+  const plano = planoAlterado?.id === id ? planoAlterado : planoCarregado;
 
   if (carregando && !erro) return <Skeleton className="h-96" />;
   if (!plano) return <PlanoNaoEncontrado erro={erro} />;
+  const inativo = plano.status === "INATIVO";
 
   return (
     <div className="flex flex-col gap-8">
@@ -39,9 +42,12 @@ export function PlanoDetalhe({ params }: { params: Promise<{ id: string }> }) {
               <IconPencil className="size-4" />
               Editar
             </Link>
-            <Button variant="danger" onClick={() => setExcluindo(true)}>
-              <IconTrash className="size-4" />
-              Excluir
+            <Button
+              variant={inativo ? "secondary" : "danger"}
+              onClick={() => setAlterandoStatus(true)}
+            >
+              {inativo ? <IconRestore className="size-4" /> : <IconBan className="size-4" />}
+              {inativo ? "Reativar" : "Inativar"}
             </Button>
           </>
         }
@@ -94,10 +100,13 @@ export function PlanoDetalhe({ params }: { params: Promise<{ id: string }> }) {
         </aside>
       </div>
 
-      <ExcluirPlanoDialog
-        plano={excluindo ? plano : null}
-        onClose={() => setExcluindo(false)}
-        onExcluido={() => router.push("/planos")}
+      <StatusPlanoDialog
+        plano={alterandoStatus ? plano : null}
+        onClose={() => setAlterandoStatus(false)}
+        onAlterado={(atualizado) => {
+          setPlanoAlterado(atualizado);
+          setAlterandoStatus(false);
+        }}
       />
     </div>
   );

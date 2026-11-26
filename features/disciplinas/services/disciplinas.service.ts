@@ -12,7 +12,8 @@ export interface DisciplinasService {
   buscarPorId(id: number): Promise<DisciplinaDetalhe | null>;
   criar(dados: DisciplinaInput): Promise<Disciplina>;
   atualizar(id: number, dados: DisciplinaAtualizacao): Promise<Disciplina>;
-  excluir(id: number): Promise<void>;
+  /** Inativa (`false`) ou reativa (`true`). Nenhum cadastro é excluído de forma permanente. */
+  alterarStatus(id: number, ativo: boolean): Promise<void>;
   /** Professores que podem ser vinculados à disciplina. */
   listarProfessores(): Promise<ProfessorOpcao[]>;
 }

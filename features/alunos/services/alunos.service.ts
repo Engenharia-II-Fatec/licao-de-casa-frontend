@@ -10,7 +10,8 @@ export interface AlunosService {
   /** O aluno criado entra no topo da lista. */
   criar(aluno: Aluno): Promise<Aluno>;
   atualizar(aluno: Aluno): Promise<Aluno>;
-  excluir(id: string): Promise<void>;
+  /** Inativa (`false`) ou reativa (`true`). Nenhum cadastro é excluído de forma permanente. */
+  alterarStatus(id: string, ativo: boolean): Promise<void>;
 }
 
 export interface ResponsaveisService {

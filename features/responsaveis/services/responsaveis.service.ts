@@ -12,7 +12,6 @@ export interface ResponsaveisDetalheService {
   alterarStatus(id: string, ativo: boolean): Promise<ResponsavelDetalhe>;
   /** Vincula um aluno já cadastrado a este responsável (troca o responsável anterior, se houver). */
   vincularAluno(id: string, alunoId: string): Promise<ResponsavelDetalhe>;
-  excluir(id: string): Promise<void>;
 }
 
 export class ResponsavelNaoEncontradoError extends Error {
@@ -22,10 +21,3 @@ export class ResponsavelNaoEncontradoError extends Error {
   }
 }
 
-/** O responsável ainda tem alunos vinculados e não pode ser excluído. */
-export class ResponsavelComDependentesError extends Error {
-  constructor(mensagem: string) {
-    super(mensagem);
-    this.name = "ResponsavelComDependentesError";
-  }
-}

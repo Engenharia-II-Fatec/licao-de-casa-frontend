@@ -60,12 +60,12 @@ export class AlunosLocalStorageService implements AlunosService {
     return aluno;
   }
 
-  async excluir(id: string): Promise<void> {
+  async alterarStatus(id: string, ativo: boolean): Promise<void> {
     const alunos = carregarAlunos();
     if (!alunos.some((a) => a.id === id)) throw new AlunoNaoEncontradoError();
     gravarJson(
       CHAVE_ALUNOS,
-      alunos.filter((a) => a.id !== id),
+      alunos.map((a) => (a.id === id ? { ...a, status: ativo ? "Ativo" : "Inativo" } : a)),
     );
   }
 }
