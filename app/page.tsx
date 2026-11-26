@@ -1,9 +1,9 @@
 "use client";
 
 import { FormEvent, Suspense, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { AjudaDialog, type TopicoAjuda } from "@/components/layout/ajuda";
 
 const Icon = ({
   children,
@@ -86,6 +86,7 @@ function LoginForm() {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ajudaSenha, setAjudaSenha] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -217,12 +218,13 @@ function LoginForm() {
           </span>
           Lembrar de mim
         </label>
-        <Link
-          href="/recuperar-senha"
-          className="font-semibold text-secondary hover:underline"
+        <button
+          type="button"
+          onClick={() => setAjudaSenha(true)}
+          className="font-semibold text-secondary hover:underline cursor-pointer"
         >
           Esqueceu a senha?
-        </Link>
+        </button>
       </div>
 
       {/* CTA: gradiente 135° primary → primary-container */}
@@ -241,11 +243,13 @@ function LoginForm() {
         <span className="font-mono">admin</span> /{" "}
         <span className="font-mono">admin123</span>
       </div>
+      <AjudaDialog topico={ajudaSenha ? "senha" : null} onClose={() => setAjudaSenha(false)} />
     </form>
   );
 }
 
 export default function LoginPage() {
+  const [ajuda, setAjuda] = useState<TopicoAjuda | null>(null);
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-surface px-5 py-8">
       <div
@@ -269,13 +273,14 @@ export default function LoginPage() {
 
         <div className="mt-8 flex flex-col items-center gap-3 text-xs text-on-surface-variant">
           <p>Precisa de ajuda com seu acesso?</p>
-          <Link
-            href="/suporte"
-            className="inline-flex items-center gap-2 rounded-full bg-secondary-container/15 px-4 py-2 text-xs font-semibold text-secondary transition hover:bg-secondary-container/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+          <button
+            type="button"
+            onClick={() => setAjuda("suporte")}
+            className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-secondary-container/15 px-4 py-2 text-xs font-semibold text-secondary transition hover:bg-secondary-container/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
           >
             <HeadsetIcon />
             Falar com o Suporte
-          </Link>
+          </button>
         </div>
       </section>
 
@@ -284,20 +289,21 @@ export default function LoginPage() {
           aria-label="Rodapé"
           className="flex gap-6 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-on-surface-variant"
         >
-          <Link href="/privacidade" className="hover:text-primary">
+          <button type="button" onClick={() => setAjuda("privacidade")} className="uppercase tracking-[0.08em] hover:text-primary cursor-pointer">
             Privacidade
-          </Link>
-          <Link href="/termos" className="hover:text-primary">
+          </button>
+          <button type="button" onClick={() => setAjuda("termos")} className="uppercase tracking-[0.08em] hover:text-primary cursor-pointer">
             Termos
-          </Link>
-          <Link href="/contato" className="hover:text-primary">
+          </button>
+          <button type="button" onClick={() => setAjuda("contato")} className="uppercase tracking-[0.08em] hover:text-primary cursor-pointer">
             Contato
-          </Link>
+          </button>
         </nav>
         <p className="text-center text-[0.65rem] text-on-surface-variant/55">
           © 2026 Espaço Lição de Casa. Todos os direitos reservados.
         </p>
       </footer>
+      <AjudaDialog topico={ajuda} onClose={() => setAjuda(null)} />
     </main>
   );
 }

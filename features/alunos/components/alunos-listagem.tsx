@@ -301,7 +301,7 @@ export function AlunosListagem() {
                                           {student.name}
                                         </p>
                                         <p className="text-xs text-[#584237] mt-1 font-medium">
-                                          ID: {student.id}
+                                          Matrícula {student.id}
                                         </p>
                                       </div>
                                     </div>

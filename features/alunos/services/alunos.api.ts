@@ -20,56 +20,63 @@ export class AlunosApiService implements AlunosService {
   }
 
   async criar(aluno: Aluno): Promise<Aluno> {
+    let res: Response;
     try {
-      const res = await fetch("/api/alunos", {
+      res = await fetch("/api/alunos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(aluno),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Erro ao salvar aluno no banco.");
-      }
-      const salvo = await res.json();
-      await this.fallback.criar(salvo).catch(() => null);
-      return salvo;
-    } catch (e) {
-      if (e instanceof Error && e.message.includes("banco")) throw e;
+    } catch {
+      // Sem conexão com o servidor: mantém o comportamento offline (localStorage).
       return this.fallback.criar(aluno);
     }
+    // O servidor respondeu com erro (ex.: CPF duplicado, validação): mostra ao usuário,
+    // nunca grava escondido no navegador.
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Erro ao salvar aluno no banco.");
+    }
+    const salvo = await res.json();
+    await this.fallback.criar(salvo).catch(() => null);
+    return salvo;
   }
 
   async atualizar(aluno: Aluno): Promise<Aluno> {
+    let res: Response;
     try {
-      const res = await fetch(`/api/alunos/${encodeURIComponent(aluno.id)}`, {
+      res = await fetch(`/api/alunos/${encodeURIComponent(aluno.id)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(aluno),
       });
-      if (res.status === 404) throw new AlunoNaoEncontradoError();
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Erro ao atualizar aluno no banco.");
-      }
-      const salvo = await res.json();
-      await this.fallback.atualizar(salvo).catch(() => null);
-      return salvo;
-    } catch (e) {
-      if (e instanceof AlunoNaoEncontradoError) throw e;
+    } catch {
       return this.fallback.atualizar(aluno);
     }
+    if (res.status === 404) throw new AlunoNaoEncontradoError();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Erro ao atualizar aluno no banco.");
+    }
+    const salvo = await res.json();
+    await this.fallback.atualizar(salvo).catch(() => null);
+    return salvo;
   }
 
   async excluir(id: string): Promise<void> {
+    let res: Response;
     try {
-      const res = await fetch(`/api/alunos/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Erro ao excluir aluno.");
-      await this.fallback.excluir(id).catch(() => null);
+      res = await fetch(`/api/alunos/${encodeURIComponent(id)}`, { method: "DELETE" });
     } catch {
       await this.fallback.excluir(id);
+      return;
     }
+    // Antes, uma falha do servidor "excluía" só no navegador e o aluno voltava ao recarregar.
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Erro ao excluir aluno.");
+    }
+    await this.fallback.excluir(id).catch(() => null);
   }
 }
 

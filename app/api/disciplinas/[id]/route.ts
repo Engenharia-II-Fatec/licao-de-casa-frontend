@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao } from "@/lib/api-auth";
-import type { Prisma } from "@prisma/client";
 import type { Area, Disciplina } from "@/features/disciplinas/types";
 
 interface Params {
@@ -125,6 +125,12 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(mapearDisciplina(atualizada));
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Já existe uma disciplina com este nome. Escolha outro nome." },
+        { status: 409 },
+      );
+    }
     console.error("Erro ao atualizar disciplina:", error);
     return NextResponse.json({ error: "Erro ao atualizar disciplina." }, { status: 500 });
   }

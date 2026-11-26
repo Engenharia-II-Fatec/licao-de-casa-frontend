@@ -159,7 +159,7 @@ export default function FormularioDisciplina({ inicial = VAZIO, textoBotao, disc
       </div>
 
       <div>
-        <span className="mb-2 block text-sm font-semibold">Área de Conhecimento / Categoria *</span>
+        <span className="mb-2 block text-sm font-semibold">Área de Conhecimento *</span>
         <div className="flex flex-wrap gap-2">
           {AREAS.map((a) => (
             <button

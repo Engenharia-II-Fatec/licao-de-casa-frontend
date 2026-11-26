@@ -97,10 +97,14 @@ function NavItens({ pathname, onClose }: { pathname: string; onClose: () => void
             <span
               key={item.href}
               aria-disabled="true"
-              className={`${itemBase} cursor-default text-on-surface-variant`}
+              title="Módulo em desenvolvimento: disponível em breve"
+              className={`${itemBase} cursor-not-allowed text-on-surface-variant/60`}
             >
               <Icon />
               {item.label}
+              <span className="ml-auto rounded-full bg-surface-container-high px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-on-surface-variant">
+                Em breve
+              </span>
             </span>
           );
         }

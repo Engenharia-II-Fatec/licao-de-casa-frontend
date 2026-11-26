@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao } from "@/lib/api-auth";
+import { parseDataBr } from "@/features/alunos/validacao";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -69,6 +70,30 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     if (!body) {
       return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+    }
+
+    // Idade negativa: bloqueia data de nascimento no futuro. O formato não é checado aqui
+    // para não travar a edição de cadastros antigos com datas em outro formato.
+    const nascimento = body.birthDate ? parseDataBr(String(body.birthDate)) : null;
+    if (nascimento && nascimento > new Date()) {
+      return NextResponse.json(
+        { error: "A data de nascimento não pode estar no futuro." },
+        { status: 400 },
+      );
+    }
+
+    const cpf = typeof body.cpf === "string" ? body.cpf.trim() : "";
+    if (cpf) {
+      const outro = await prisma.aluno.findFirst({
+        where: { cpf, NOT: { id } },
+        select: { name: true, id: true },
+      });
+      if (outro) {
+        return NextResponse.json(
+          { error: `Já existe outro aluno com este CPF: ${outro.name} (matrícula ${outro.id}).` },
+          { status: 409 },
+        );
+      }
     }
 
     const atualizado = await prisma.aluno.update({

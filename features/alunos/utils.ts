@@ -1,5 +1,5 @@
 import { FILTRO_PLANO_TODOS } from "./constants";
-import type { Aluno, FiltroStatusAluno } from "./types";
+import type { Aluno, FiltroStatusAluno, Responsavel } from "./types";
 
 /** O aluno é o próprio responsável financeiro (titular da conta)? */
 export function ehTitular(aluno: Aluno): boolean {
@@ -50,4 +50,30 @@ export function filtrarAlunos(alunos: Aluno[], filtro: FiltroAlunos): Aluno[] {
 
     return correspondeBusca && correspondePlano && correspondeStatus;
   });
+}
+
+/** Vincula o aluno a um responsável cadastrado, mantendo `guardian*` e `responsavelId` em sincronia. */
+export function vincularResponsavel(aluno: Aluno, responsavel: Responsavel): Aluno {
+  return {
+    ...aluno,
+    responsavelId: responsavel.id,
+    guardian: responsavel.name,
+    guardianRole: `${responsavel.role} • Principal`,
+    guardianPhone: responsavel.phone,
+    guardianPhoto: responsavel.photo,
+  };
+}
+
+/**
+ * Torna o aluno o próprio titular da conta (sem responsável vinculado).
+ * `responsavelId: ""` faz a API gravar null e remover o vínculo existente.
+ */
+export function tornarTitular(aluno: Aluno): Aluno {
+  return {
+    ...aluno,
+    responsavelId: "",
+    guardian: aluno.name,
+    guardianRole: "Titular da Conta",
+    guardianPhoto: undefined,
+  };
 }

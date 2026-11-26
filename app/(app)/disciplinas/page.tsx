@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState, Skeleton } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
 import { AREAS, ESTILO_AREA, ESTILO_PADRAO } from "@/features/disciplinas/constants";
 import { useListaDisciplinas } from "@/features/disciplinas/hooks";
@@ -53,15 +54,10 @@ export default function ListagemDisciplinas() {
   return (
     <div className="text-neutral-900">
       <div className="mx-auto max-w-5xl space-y-6">
-        <h1 className="text-xl font-bold">Gestão de Disciplinas</h1>
-
-        <section className="rounded-3xl bg-gradient-to-r from-[#3b2314] to-[#a8501a] p-8 text-white">
-          <h2 className="text-3xl font-bold">Curriculum Atelier</h2>
-          <p className="mt-2 max-w-md text-sm text-orange-100">
-            Gerencie as áreas de conhecimento e disciplinas que compõem a jornada
-            acadêmica dos nossos alunos.
-          </p>
-        </section>
+        <PageHeader
+          title="Gestão de Disciplinas"
+          description="Gerencie as áreas de conhecimento e disciplinas que compõem a jornada acadêmica dos alunos."
+        />
 
         <section className="flex flex-wrap items-center gap-3 rounded-3xl bg-white p-3 shadow-sm">
           <input

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { alunosService } from "../services";
 import type { Aluno } from "../types";
@@ -10,48 +12,59 @@ interface Props {
   onDeleted: () => void;
 }
 
-/** Modal de confirmação "Excluir Aluno?". */
-export function ExcluirAlunoDialog({ aluno: studentToDelete, onClose, onDeleted }: Props) {
+/**
+ * Confirmação "Excluir Aluno?". Usa o ConfirmDialog padrão do sistema (Esc, clique fora,
+ * botões desabilitados e "Aguarde..." enquanto exclui).
+ */
+export function ExcluirAlunoDialog({ aluno, onClose, onDeleted }: Props) {
   const toast = useToast();
+  const [excluindo, setExcluindo] = useState(false);
 
-  const confirmDeleteStudent = async () => {
+  const confirmar = async () => {
+    if (excluindo) return;
+    setExcluindo(true);
     try {
-      await alunosService.excluir(studentToDelete.id);
+      await alunosService.excluir(aluno.id);
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Não foi possível excluir o aluno.");
+      setExcluindo(false);
       return;
     }
-    toast.success(`Aluno ${studentToDelete.name} removido.`);
+    toast.success(`Aluno ${aluno.name} removido.`);
     onDeleted();
     onClose();
   };
 
+  const pagamentos = aluno.paymentHistory?.length ?? 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border border-[#f0eded]">
-        <div className="w-14 h-14 rounded-full bg-[#ffdad6] text-[#ba1a1a] flex items-center justify-center mx-auto mb-4">
-          <span className="material-symbols-outlined text-3xl">delete_forever</span>
-        </div>
-        <h4 className="text-xl font-black text-[#1b1c1c]">Excluir Aluno?</h4>
-        <p className="text-sm text-[#584237] mt-2">
-          Tem certeza que deseja remover <b>{studentToDelete.name}</b> (ID: {studentToDelete.id})
-          da base de dados?
-        </p>
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-full text-sm font-bold bg-[#f5f3f3] text-[#584237] hover:bg-[#eae8e7] transition-all cursor-pointer"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={confirmDeleteStudent}
-            className="flex-1 py-2.5 rounded-full text-sm font-bold bg-[#ba1a1a] hover:bg-red-700 text-white shadow-lg shadow-[#ba1a1a]/25 transition-all active:scale-95 cursor-pointer"
-          >
-            Confirmar
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmDialog
+      open
+      title="Excluir aluno?"
+      description={
+        <>
+          O cadastro de <strong>{aluno.name}</strong> (matrícula {aluno.id}) será removido
+          {pagamentos > 0 && (
+            <>
+              , junto com <strong>{pagamentos} registro{pagamentos > 1 ? "s" : ""} de pagamento</strong>
+            </>
+          )}
+          . Esta ação não pode ser desfeita.
+          {aluno.status === "Ativo" && (
+            <>
+              <br />
+              <span className="mt-2 block">
+                Se o aluno só deixou de frequentar, prefira alterar o status para{" "}
+                <strong>Inativo</strong> em &ldquo;Editar Aluno&rdquo;.
+              </span>
+            </>
+          )}
+        </>
+      }
+      confirmLabel="Excluir"
+      loading={excluindo}
+      onConfirm={confirmar}
+      onClose={onClose}
+    />
   );
 }

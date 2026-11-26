@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useRef, useState, useMemo, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useToast } from "@/components/ui/toast";
-import { OPCOES_UF } from "../constants";
+import { OPCOES_UF, SEM_RESPONSAVEL } from "../constants";
 import { mascararCep, mascararCpf, mascararData, mascararRg, mascararTelefone } from "@/lib/masks";
 import { consultarCep } from "@/lib/viacep";
 import { useCadastroAluno } from "../cadastro-context";
@@ -12,6 +13,13 @@ import { useResponsaveis } from "../hooks";
 import { alunosService } from "../services";
 import { CidadeSelect } from "./cidade-select";
 import type { Aluno } from "../types";
+import {
+  ORDEM_CAMPOS_ALUNO,
+  formatarDataBr,
+  validarCadastroAluno,
+  type CampoAluno,
+  type ErrosAluno,
+} from "../validacao";
 import { calcularIniciais, precoDoPlano, tipoBadgeDoPlano } from "../utils";
 
 /** Tela "Cadastro de Novo Aluno". */
@@ -22,6 +30,8 @@ export function AlunoNovo() {
   const { responsaveis: responsibles } = useResponsaveis();
 
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [erros, setErros] = useState<ErrosAluno>({});
+  const [salvando, setSalvando] = useState(false);
   const ultimoCepBuscadoRef = useRef("");
   const numeroInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,7 +83,11 @@ export function AlunoNovo() {
     [setCreateForm, toast]
   );
 
+  const limparErro = (campo: CampoAluno) =>
+    setErros((prev) => (prev[campo] ? { ...prev, [campo]: undefined } : prev));
+
   const handleCepChange = (e: ChangeEvent<HTMLInputElement>) => {
+    limparErro("cep");
     const novoCep = mascararCep(e.target.value);
     setCreateForm((prev) => ({ ...prev, cep: novoCep }));
 
@@ -97,81 +111,114 @@ export function AlunoNovo() {
     }
   };
 
-  // Responsável selecionado no cadastro (sem seleção explícita, usa o primeiro da lista).
-  // A escolha feita na tela vale mais que o responsável vindo do link.
+  // Responsável selecionado no cadastro. Sem seleção, o aluno fica como titular da conta
+  // (nunca escolhe um responsável sozinho). A escolha feita na tela vale mais que o do link;
+  // SEM_RESPONSAVEL marca que o usuário optou explicitamente por não vincular ninguém.
   const selectedResponsible = useMemo(() => {
     const id = createForm.selectedResponsibleId || responsavelDoLink;
-    if (!id) {
-      return responsibles.length > 0 ? responsibles[0] : null;
-    }
+    if (!id || id === SEM_RESPONSAVEL) return null;
     return responsibles.find((r) => r.id === id) || null;
   }, [responsibles, createForm.selectedResponsibleId, responsavelDoLink]);
+
+  const responsaveisFiltrados = useMemo(() => {
+    const busca = createForm.responsibleSearch.trim().toLowerCase();
+    return busca ? responsibles.filter((r) => r.name.toLowerCase().includes(busca)) : responsibles;
+  }, [responsibles, createForm.responsibleSearch]);
+
+  // Ao voltar do "Criar Novo Responsável" (ou abrir pelo link), rola a lista até o selecionado.
+  // Rola só a lista (scrollIntoView também rolaria a página inteira).
+  const listaResponsaveisRef = useRef<HTMLDivElement>(null);
+  const itemSelecionadoRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const lista = listaResponsaveisRef.current;
+    const item = itemSelecionadoRef.current;
+    if (!lista || !item) return;
+    const topo = item.offsetTop - lista.offsetTop;
+    if (topo < lista.scrollTop || topo + item.offsetHeight > lista.scrollTop + lista.clientHeight) {
+      lista.scrollTop = topo - 8;
+    }
+  }, [selectedResponsible?.id, responsibles.length]);
+
+  const selecionarResponsavel = (id: string) =>
+    setCreateForm((prev) => ({
+      ...prev,
+      // Clicar de novo no responsável já selecionado desmarca (aluno vira titular).
+      selectedResponsibleId: selectedResponsible?.id === id ? SEM_RESPONSAVEL : id,
+    }));
 
   const selectedPlanPrice = precoDoPlano(createForm.selectedPlan);
 
   const handleFinalizeCadastro = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!selectedResponsible && responsibles.length === 0) {
-      toast.error(
-        'Por favor, cadastre um responsável no botão "Criar Novo Responsável" antes de finalizar.',
-      );
+    if (salvando) return;
+
+    const errosEncontrados = validarCadastroAluno(createForm);
+    setErros(errosEncontrados);
+    const primeiroInvalido = ORDEM_CAMPOS_ALUNO.find((c) => errosEncontrados[c]);
+    if (primeiroInvalido) {
+      document.getElementById(`aluno-${primeiroInvalido}`)?.focus();
+      toast.error("Revise os campos destacados antes de finalizar o cadastro.");
       return;
     }
 
-    const finalName = createForm.name.trim() || "Arthur Cavalcanti Silva";
-    const valorMensalidade = selectedPlanPrice !== "Consultar" ? selectedPlanPrice : "R$ 890,00";
+    const finalName = createForm.name.trim();
+    const hoje = new Date();
+    const renovacao = new Date(hoje);
+    renovacao.setMonth(renovacao.getMonth() + 1);
 
+    // Só grava o que o usuário informou: nada de valores de exemplo no banco.
     const createdStudent: Aluno = {
-      id: `2024-0${Math.floor(890 + Math.random() * 100)}`,
+      id: "", // a matrícula é gerada pela API
       name: finalName,
       initials: calcularIniciais(finalName),
       avatarBg: "bg-[#d0e4ff]",
       avatarText: "text-[#00629f]",
       photo: createForm.photo || undefined,
       guardian: selectedResponsible ? selectedResponsible.name : finalName,
-      responsavelId: selectedResponsible?.id,
+      responsavelId: selectedResponsible?.id ?? "",
       guardianRole: selectedResponsible
         ? `${selectedResponsible.role} • Principal`
         : "Titular da Conta",
       guardianPhoto: selectedResponsible?.photo,
-      guardianPhone: selectedResponsible?.phone || createForm.phone || "(11) 98877-6655",
-      email: `${finalName.toLowerCase().replace(/\s+/g, ".")}@email.com`,
-      rg: createForm.rg || "00.000.000-0",
-      cpf: createForm.cpf || "000.000.000-0",
-      birthDate: createForm.birthDate || "10/05/2012",
-      schoolGrade: createForm.schoolGrade,
-      schoolName: createForm.schoolName || "Escola Estadual São Paulo",
-      cep: createForm.cep || "01000-000",
-      address:
-        createForm.address ||
-        (createForm.number ? `Rua das Flores, ${createForm.number}` : "Rua das Flores, 123"),
-      number: createForm.number || "123",
-      complement: createForm.complement || "Apto 42",
-      neighborhood: createForm.neighborhood || "Centro",
-      city: createForm.city || (createForm.state && createForm.state !== "SP" ? "" : "São Paulo"),
-      state: createForm.state || "SP",
+      guardianPhone: selectedResponsible ? selectedResponsible.phone : createForm.phone || undefined,
+      rg: createForm.rg || undefined,
+      cpf: createForm.cpf || undefined,
+      birthDate: createForm.birthDate,
+      schoolGrade: createForm.schoolGrade || undefined,
+      schoolName: createForm.schoolName.trim() || undefined,
+      cep: createForm.cep || undefined,
+      address: createForm.address.trim() || undefined,
+      number: createForm.number.trim() || undefined,
+      complement: createForm.complement.trim() || undefined,
+      neighborhood: createForm.neighborhood.trim() || undefined,
+      city: createForm.city || undefined,
+      state: createForm.state || undefined,
       plan: createForm.selectedPlan,
       planPrice: selectedPlanPrice,
       planBadgeType: tipoBadgeDoPlano(createForm.selectedPlan),
       status: "Ativo",
-      grade: createForm.schoolGrade,
-      shift: "Tarde (14h - 17h)",
-      joinedDate: "12/01/2024",
-      renewalDate: "12/04/2024",
-      paymentHistory: [
-        { id: "1", description: "Mensalidade Abril", date: "10/04/2024", amount: valorMensalidade, status: "Pago" },
-        { id: "2", description: "Mensalidade Maio", date: "10/05/2024", amount: valorMensalidade, status: "Pendente" },
-      ],
+      grade: createForm.schoolGrade || undefined,
+      joinedDate: formatarDataBr(hoje),
+      renewalDate: formatarDataBr(renovacao),
+      paymentHistory: [],
     };
 
+    setSalvando(true);
     try {
       await alunosService.criar(createdStudent);
     } catch (erro) {
-      toast.error(erro instanceof Error ? erro.message : "Não foi possível cadastrar o aluno.");
+      const mensagem = erro instanceof Error ? erro.message : "Não foi possível cadastrar o aluno.";
+      if (/cpf/i.test(mensagem)) {
+        setErros((prev) => ({ ...prev, cpf: mensagem }));
+        document.getElementById("aluno-cpf")?.focus();
+      }
+      toast.error(mensagem);
+      setSalvando(false);
       return;
     }
 
+    setSalvando(false);
     limpar();
     toast.success(`Aluno ${createdStudent.name} cadastrado com sucesso!`);
     voltarParaLista();
@@ -187,14 +234,6 @@ export function AlunoNovo() {
             onClick={() => router.push("/alunos")}
             className="hover:text-[#9e4300] hover:underline cursor-pointer"
           >
-            Dashboard
-          </button>
-          <span>›</span>
-          <button
-            type="button"
-            onClick={() => router.push("/alunos")}
-            className="hover:text-[#9e4300] hover:underline cursor-pointer"
-          >
             Alunos
           </button>
           <span>›</span>
@@ -204,7 +243,7 @@ export function AlunoNovo() {
       </div>
 
       {/* Layout em 2 colunas: Formulário à esquerda e Resumo à direita */}
-      <form onSubmit={handleFinalizeCadastro} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <form onSubmit={handleFinalizeCadastro} noValidate className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Coluna Esquerda: Os 4 Cards Principais */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           {/* CARD 1: Dados do Aluno */}
@@ -249,39 +288,56 @@ export function AlunoNovo() {
             {/* Nome Completo */}
             <div>
               <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">
-                Nome Completo
+                Nome Completo <span className="text-error">*</span>
               </label>
               <input
                 type="text"
                 required
+                id="aluno-name"
                 value={createForm.name}
-                onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                aria-invalid={erros.name ? true : undefined}
+                aria-describedby={erros.name ? "aluno-name-erro" : undefined}
+                onChange={(e) => { limparErro("name"); setCreateForm({ ...createForm, name: e.target.value }); }}
                 placeholder="Ex: Arthur Cavalcanti Silva"
-                className="w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
+                className="aria-invalid:ring-2 aria-invalid:ring-error/60 w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
               />
+              {erros.name && (
+                <p id="aluno-name-erro" role="alert" className="mt-1.5 text-[11px] font-semibold text-error">
+                  {erros.name}
+                </p>
+              )}
             </div>
 
             {/* Data de Nascimento e RG */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">
-                  Data de Nascimento
+                  Data de Nascimento <span className="text-error">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    value={createForm.birthDate}
+                    id="aluno-birthDate"
+                value={createForm.birthDate}
+                aria-invalid={erros.birthDate ? true : undefined}
+                aria-describedby={erros.birthDate ? "aluno-birthDate-erro" : undefined}
                     inputMode="numeric"
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, birthDate: mascararData(e.target.value) })
-                    }
+                    onChange={(e) => {
+                      limparErro("birthDate");
+                      setCreateForm({ ...createForm, birthDate: mascararData(e.target.value) });
+                    }}
                     placeholder="dd/mm/aaaa"
-                    className="w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none pr-10"
+                    className="aria-invalid:ring-2 aria-invalid:ring-error/60 w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none pr-10"
                   />
                   <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#584237]/60 text-lg pointer-events-none">
                     calendar_today
                   </span>
                 </div>
+                {erros.birthDate && (
+                  <p id="aluno-birthDate-erro" role="alert" className="mt-1.5 text-[11px] font-semibold text-error">
+                    {erros.birthDate}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -302,12 +358,20 @@ export function AlunoNovo() {
                 <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">CPF</label>
                 <input
                   type="text"
-                  value={createForm.cpf}
+                  id="aluno-cpf"
+                value={createForm.cpf}
+                aria-invalid={erros.cpf ? true : undefined}
+                aria-describedby={erros.cpf ? "aluno-cpf-erro" : undefined}
                   inputMode="numeric"
-                  onChange={(e) => setCreateForm({ ...createForm, cpf: mascararCpf(e.target.value) })}
+                  onChange={(e) => { limparErro("cpf"); setCreateForm({ ...createForm, cpf: mascararCpf(e.target.value) }); }}
                   placeholder="000.000.000-00"
-                  className="w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
+                  className="aria-invalid:ring-2 aria-invalid:ring-error/60 w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
                 />
+                {erros.cpf && (
+                  <p id="aluno-cpf-erro" role="alert" className="mt-1.5 text-[11px] font-semibold text-error">
+                    {erros.cpf}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -316,12 +380,20 @@ export function AlunoNovo() {
                 </label>
                 <input
                   type="text"
-                  value={createForm.phone}
+                  id="aluno-phone"
+                value={createForm.phone}
+                aria-invalid={erros.phone ? true : undefined}
+                aria-describedby={erros.phone ? "aluno-phone-erro" : undefined}
                   inputMode="tel"
-                  onChange={(e) => setCreateForm({ ...createForm, phone: mascararTelefone(e.target.value) })}
+                  onChange={(e) => { limparErro("phone"); setCreateForm({ ...createForm, phone: mascararTelefone(e.target.value) }); }}
                   placeholder="(00) 00000-0000"
-                  className="w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
+                  className="aria-invalid:ring-2 aria-invalid:ring-error/60 w-full px-4 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
                 />
+                {erros.phone && (
+                  <p id="aluno-phone-erro" role="alert" className="mt-1.5 text-[11px] font-semibold text-error">
+                    {erros.phone}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -397,14 +469,17 @@ export function AlunoNovo() {
                 <div className="relative">
                   <input
                     type="text"
-                    value={createForm.cep}
+                    id="aluno-cep"
+                value={createForm.cep}
+                aria-invalid={erros.cep ? true : undefined}
+                aria-describedby={erros.cep ? "aluno-cep-erro" : undefined}
                     inputMode="numeric"
                     maxLength={9}
                     onChange={handleCepChange}
                     onBlur={handleCepBlur}
                     onKeyDown={handleCepKeyDown}
                     placeholder="00000-000"
-                    className="w-full pl-4 pr-11 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
+                    className="aria-invalid:ring-2 aria-invalid:ring-error/60 w-full pl-4 pr-11 py-3.5 bg-[#f5f3f3] border-none rounded-xl text-sm font-medium text-[#1b1c1c] placeholder:text-[#584237]/40 focus:ring-2 focus:ring-[#c2410c]/25 outline-none"
                   />
                   <button
                     type="button"
@@ -423,6 +498,11 @@ export function AlunoNovo() {
                     </span>
                   </button>
                 </div>
+                {erros.cep && (
+                  <p id="aluno-cep-erro" role="alert" className="mt-1.5 text-[11px] font-semibold text-error">
+                    {erros.cep}
+                  </p>
+                )}
               </div>
               <div className="sm:col-span-8">
                 <label className="block text-xs font-bold text-[#1b1c1c] mb-1.5">
@@ -527,8 +607,15 @@ export function AlunoNovo() {
                   <span className="material-symbols-outlined text-xl">share</span>
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base sm:text-lg text-[#1b1c1c] leading-tight">
+                  <h3 className="font-extrabold text-base sm:text-lg text-[#1b1c1c] leading-tight flex items-center gap-1.5">
                     Vincular Responsável
+                    <InfoTooltip label="O que é aluno titular e aluno dependente?">
+                      <b>Aluno dependente:</b> vinculado a um responsável (pai, mãe, tutor), que
+                      recebe as faturas e responde pelo financeiro.
+                      <br />
+                      <b>Aluno titular:</b> sem responsável; o próprio aluno é o titular da conta
+                      e o histórico financeiro fica no perfil dele.
+                    </InfoTooltip>
                   </h3>
                   <p className="text-xs text-[#584237]/75 font-normal">
                     Selecione ou crie um novo contato
@@ -546,6 +633,37 @@ export function AlunoNovo() {
               </button>
             </div>
 
+            {/* Opção "sem responsável": o próprio aluno é o titular da conta */}
+            <div
+              onClick={() =>
+                setCreateForm((prev) => ({ ...prev, selectedResponsibleId: SEM_RESPONSAVEL }))
+              }
+              className={`p-3 sm:p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all border ${
+                !selectedResponsible
+                  ? 'bg-[#f5f3f3] border-[#dfc0b2] shadow-sm'
+                  : 'bg-[#fbf9f8] border-transparent hover:bg-[#f5f3f3]'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#d0e4ff] text-[#00629f] overflow-hidden shrink-0 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
+                </div>
+                <div>
+                  <h5 className="font-extrabold text-xs sm:text-sm text-[#1b1c1c]">
+                    Sem responsável (aluno é o titular)
+                  </h5>
+                  <p className="text-[11px] text-[#584237]/70">
+                    O próprio aluno responde pelo financeiro da conta
+                  </p>
+                </div>
+              </div>
+              {!selectedResponsible ? (
+                <span className="material-symbols-outlined text-lg text-[#c2410c]">check_circle</span>
+              ) : (
+                <div className="w-5 h-5 rounded-full border-2 border-[#dfc0b2] hover:border-[#c2410c] transition-colors"></div>
+              )}
+            </div>
+
             {responsibles.length === 0 ? (
               <div className="border-2 border-dashed border-[#dfc0b2]/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-[#fbf9f8]/60">
                 <div className="w-12 h-12 rounded-full bg-[#ffdbcb]/60 text-[#783100] flex items-center justify-center mb-3">
@@ -553,7 +671,7 @@ export function AlunoNovo() {
                 </div>
                 <h4 className="text-sm font-bold text-[#1b1c1c]">Nenhum responsável cadastrado</h4>
                 <p className="text-xs text-[#584237]/70 mt-1 max-w-sm leading-relaxed">
-                  Nenhuma pré-definição ativa. Utilize o botão &ldquo;Criar Novo Responsável&rdquo; acima para cadastrar e vincular.
+                  O aluno será cadastrado como titular da conta. Para vincular um responsável, use o botão &ldquo;Criar Novo Responsável&rdquo; acima.
                 </p>
               </div>
             ) : (
@@ -574,26 +692,43 @@ export function AlunoNovo() {
                   />
                 </div>
 
-                {/* Lista de Responsáveis para Seleção */}
-                <div className="flex flex-col gap-2.5">
-                  {responsibles
-                    .filter((r) =>
-                      r.name
-                        .toLowerCase()
-                        .includes(createForm.responsibleSearch.toLowerCase())
-                    )
-                    .map((resp) => {
+                {/* Lista de Responsáveis para Seleção: altura fixa com rolagem */}
+                <div className="flex items-center justify-between text-[11px] font-semibold text-[#584237]/70">
+                  <span>
+                    {responsaveisFiltrados.length}{" "}
+                    {responsaveisFiltrados.length === 1 ? "responsável" : "responsáveis"}
+                    {createForm.responsibleSearch ? " encontrados" : " cadastrados"}
+                  </span>
+                  {selectedResponsible && (
+                    <span className="truncate pl-3 text-[#c2410c]">
+                      Selecionado: {selectedResponsible.name}
+                    </span>
+                  )}
+                </div>
+                <div
+                  ref={listaResponsaveisRef}
+                  role="listbox"
+                  aria-label="Responsáveis cadastrados"
+                  tabIndex={0}
+                  className="flex max-h-72 flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-2xl border border-[#f0eded] p-2 pr-1.5 focus-visible:outline-2 focus-visible:outline-[#c2410c]/40"
+                >
+                  {responsaveisFiltrados.length === 0 && (
+                    <p className="px-3 py-6 text-center text-xs text-[#584237]/70">
+                      Nenhum responsável encontrado para &ldquo;{createForm.responsibleSearch}&rdquo;.
+                    </p>
+                  )}
+                  {responsaveisFiltrados.map((resp) => {
                       const isSelected = selectedResponsible?.id === resp.id;
 
                       return (
                         <div
                           key={resp.id}
-                          onClick={() =>
-                            setCreateForm((prev) => ({
-                              ...prev,
-                              selectedResponsibleId: resp.id,
-                            }))
-                          }
+                          role="option"
+                          aria-selected={isSelected}
+                          tabIndex={-1}
+                          ref={isSelected ? itemSelecionadoRef : undefined}
+                          onClick={() => selecionarResponsavel(resp.id)}
+                          title={isSelected ? "Clique para desmarcar" : undefined}
                           className={`p-3 sm:p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all border ${
                             isSelected
                               ? 'bg-[#f5f3f3] border-[#dfc0b2] shadow-sm'
@@ -617,7 +752,7 @@ export function AlunoNovo() {
                           <div className="flex items-center gap-2">
                             {isSelected ? (
                               <div className="flex items-center gap-1.5 text-xs font-bold text-[#c2410c]">
-                                <span>Selecionar</span>
+                                <span>Selecionado</span>
                                 <span className="material-symbols-outlined text-lg">
                                   check_circle
                                 </span>
@@ -756,9 +891,10 @@ export function AlunoNovo() {
             </button>
             <button
               type="submit"
-              className="px-8 py-3.5 rounded-full text-sm font-bold bg-[#9e4300] hover:bg-[#7d3500] text-white shadow-xl shadow-[#9e4300]/25 hover:shadow-2xl active:scale-95 transition-all cursor-pointer"
+              disabled={salvando}
+              className="disabled:opacity-60 disabled:cursor-wait px-8 py-3.5 rounded-full text-sm font-bold bg-[#9e4300] hover:bg-[#7d3500] text-white shadow-xl shadow-[#9e4300]/25 hover:shadow-2xl active:scale-95 transition-all cursor-pointer"
             >
-              Finalizar Cadastro
+              {salvando ? "Salvando..." : "Finalizar Cadastro"}
             </button>
           </div>
         </div>
@@ -802,11 +938,11 @@ export function AlunoNovo() {
                     </>
                   ) : (
                     <>
-                      <p className="font-bold text-xs text-[#ba1a1a]">
-                        Nenhum vinculado
+                      <p className="font-bold text-sm text-[#1b1c1c]">
+                        {createForm.name.trim() || 'O próprio aluno'}
                       </p>
-                      <p className="text-[10px] text-[#584237]/60">
-                        Aguardando criação de responsável...
+                      <p className="text-[11px] text-[#584237]/75">
+                        Titular da conta (sem responsável vinculado)
                       </p>
                     </>
                   )}
@@ -834,13 +970,15 @@ export function AlunoNovo() {
             <div className="flex flex-col gap-3 pt-2">
               <button
                 type="submit"
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#9e4300] to-[#f2711c] text-white font-extrabold text-sm sm:text-base shadow-xl shadow-[#9e4300]/25 hover:shadow-2xl hover:translate-y-[-1px] active:scale-95 transition-all text-center cursor-pointer"
+              disabled={salvando}
+                className="disabled:opacity-60 disabled:cursor-wait w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#9e4300] to-[#f2711c] text-white font-extrabold text-sm sm:text-base shadow-xl shadow-[#9e4300]/25 hover:shadow-2xl hover:translate-y-[-1px] active:scale-95 transition-all text-center cursor-pointer"
               >
-                Finalizar Cadastro
+                {salvando ? "Salvando..." : "Finalizar Cadastro"}
               </button>
 
               <p className="text-[10px] text-[#584237]/70 text-center leading-relaxed">
-                Ao finalizar, o contrato será enviado automaticamente para assinatura digital do responsável.
+                Ao finalizar, o contrato será enviado automaticamente para assinatura digital{' '}
+                {selectedResponsible ? 'do responsável' : 'do aluno titular'}.
               </p>
             </div>
           </div>

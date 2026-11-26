@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao } from "@/lib/api-auth";
+import { parseDataBr } from "@/features/alunos/validacao";
 
 export async function GET() {
   const negado = await exigirSessao();
@@ -75,7 +76,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nome do aluno é obrigatório." }, { status: 400 });
     }
 
-    const alunoId = body.id || `2024-0${Math.floor(890 + Math.random() * 100)}`;
+    // Idade negativa: bloqueia data de nascimento no futuro. O formato não é checado aqui
+    // para não travar a edição de cadastros antigos com datas em outro formato.
+    const nascimento = body.birthDate ? parseDataBr(String(body.birthDate)) : null;
+    if (nascimento && nascimento > new Date()) {
+      return NextResponse.json(
+        { error: "A data de nascimento não pode estar no futuro." },
+        { status: 400 },
+      );
+    }
+
+    // CPF repetido: avisa antes de criar um segundo cadastro do mesmo aluno.
+    const cpf = typeof body.cpf === "string" ? body.cpf.trim() : "";
+    if (cpf) {
+      const existente = await prisma.aluno.findFirst({ where: { cpf }, select: { name: true, id: true } });
+      if (existente) {
+        return NextResponse.json(
+          { error: `Já existe um aluno com este CPF: ${existente.name} (matrícula ${existente.id}).` },
+          { status: 409 },
+        );
+      }
+    }
+
+    const alunoId = body.id || (await proximaMatricula());
 
     const criado = await prisma.aluno.create({
       data: {
@@ -166,4 +189,19 @@ export async function POST(request: NextRequest) {
     console.error("Erro ao cadastrar aluno:", error);
     return NextResponse.json({ error: "Erro ao cadastrar aluno." }, { status: 500 });
   }
+}
+
+/** Próxima matrícula no formato AAAA-NNNN (sequencial dentro do ano). */
+async function proximaMatricula(): Promise<string> {
+  const ano = new Date().getFullYear();
+  const prefixo = `${ano}-`;
+  const doAno = await prisma.aluno.findMany({
+    where: { id: { startsWith: prefixo } },
+    select: { id: true },
+  });
+  const maior = doAno.reduce((max, { id }) => {
+    const n = Number(id.slice(prefixo.length));
+    return Number.isInteger(n) && n > max ? n : max;
+  }, 0);
+  return `${prefixo}${String(maior + 1).padStart(4, "0")}`;
 }

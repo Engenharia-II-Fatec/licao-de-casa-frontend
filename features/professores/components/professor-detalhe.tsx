@@ -300,6 +300,7 @@ function FormularioProfessor({
                 value={form.dataNascimento}
                 max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => atualizar("dataNascimento", e.target.value)}
+                erro={erros.dataNascimento}
                 className="sm:col-span-2"
               />
             </div>
