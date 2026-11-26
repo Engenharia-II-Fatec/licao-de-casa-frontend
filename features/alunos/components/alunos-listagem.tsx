@@ -290,21 +290,27 @@ export function AlunosListagem() {
                                 >
                                   {/* Coluna Aluno */}
                                   <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
+                                    {/* Clicar no aluno (foto ou nome) abre o perfil detalhado. */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStudentNameClick(student)}
+                                      title="Ver perfil do aluno"
+                                      className="group/aluno flex items-center gap-3 rounded-xl text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c2410c]"
+                                    >
                                       <div
                                         className={`w-10 h-10 rounded-full ${student.avatarBg} flex items-center justify-center ${student.avatarText} font-bold text-sm select-none shadow-sm`}
                                       >
                                         {student.initials}
                                       </div>
                                       <div>
-                                        <p className="font-bold text-[#1b1c1c] text-left leading-none">
+                                        <p className="font-bold text-[#1b1c1c] text-left leading-none group-hover/aluno:text-[#c2410c] group-hover/aluno:underline underline-offset-2">
                                           {student.name}
                                         </p>
                                         <p className="text-xs text-[#584237] mt-1 font-medium">
                                           Matrícula {student.id}
                                         </p>
                                       </div>
-                                    </div>
+                                    </button>
                                   </td>
 
                                   {/* Coluna Responsável Financeiro */}
@@ -343,18 +349,6 @@ export function AlunosListagem() {
                                   {/* Coluna Ações */}
                                   <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
-                                      <button
-                                        onClick={() => handleStudentNameClick(student)}
-                                        className="p-2 text-[#00629f] bg-[#d0e4ff]/40 hover:bg-[#d0e4ff]/80 rounded-xl transition-all active:scale-95 cursor-pointer"
-                                        title="Ver Perfil Detalhado"
-                                      >
-                                        <span
-                                          className="material-symbols-outlined text-[20px]"
-                                          style={{ fontVariationSettings: "'FILL' 1" }}
-                                        >
-                                          account_circle
-                                        </span>
-                                      </button>
                                       <button
                                         onClick={() => setEditingStudent({ ...student })}
                                         className="p-2 text-[#584237] hover:bg-[#eae8e7] rounded-xl transition-all active:scale-95 cursor-pointer"
