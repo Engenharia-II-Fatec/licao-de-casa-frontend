@@ -10,7 +10,8 @@ export interface PlanosService {
   buscarPorId(id: string): Promise<Plano | null>;
   criar(dados: PlanoInput): Promise<Plano>;
   atualizar(id: string, dados: PlanoInput): Promise<Plano>;
-  excluir(id: string): Promise<void>;
+  /** Inativa (`false`) ou reativa (`true`). Nenhum cadastro é excluído de forma permanente. */
+  alterarStatus(id: string, ativo: boolean): Promise<Plano>;
 }
 
 export class PlanoNaoEncontradoError extends Error {

@@ -9,12 +9,12 @@ import { IconPlus, IconSearch } from "@/components/ui/icons";
 import { PageHeader } from "@/components/ui/page-header";
 import { usePlanos } from "../hooks";
 import type { Plano } from "../types";
-import { ExcluirPlanoDialog } from "./excluir-plano-dialog";
+import { StatusPlanoDialog } from "./status-plano-dialog";
 import { PlanosTable } from "./planos-table";
 
 export function PlanosListagem() {
   const [busca, setBusca] = useState("");
-  const [excluindo, setExcluindo] = useState<Plano | null>(null);
+  const [planoParaStatus, setPlanoParaStatus] = useState<Plano | null>(null);
   const { planos, carregando, erro, recarregar } = usePlanos({ busca: busca.trim() });
 
   return (
@@ -71,14 +71,14 @@ export function PlanosListagem() {
           />
         )
       ) : (
-        <PlanosTable planos={planos} onExcluir={setExcluindo} />
+        <PlanosTable planos={planos} onAlterarStatus={setPlanoParaStatus} />
       )}
 
-      <ExcluirPlanoDialog
-        plano={excluindo}
-        onClose={() => setExcluindo(null)}
-        onExcluido={() => {
-          setExcluindo(null);
+      <StatusPlanoDialog
+        plano={planoParaStatus}
+        onClose={() => setPlanoParaStatus(null)}
+        onAlterado={() => {
+          setPlanoParaStatus(null);
           recarregar();
         }}
       />

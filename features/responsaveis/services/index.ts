@@ -2,7 +2,6 @@ import { ResponsaveisApiService } from "./responsaveis.api";
 import type { ResponsaveisDetalheService } from "./responsaveis.service";
 
 export {
-  ResponsavelComDependentesError,
   ResponsavelNaoEncontradoError,
   type ResponsaveisDetalheService,
 } from "./responsaveis.service";

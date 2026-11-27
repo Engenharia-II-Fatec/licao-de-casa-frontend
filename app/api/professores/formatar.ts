@@ -150,8 +150,9 @@ export function lerDadosProfessor(
   if (nascimento) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(nascimento)) return { erro: "Data de nascimento inválida." };
     dataNascimento = new Date(`${nascimento}T00:00:00Z`);
-    if (Number.isNaN(dataNascimento.getTime()) || dataNascimento > new Date()) {
-      return { erro: "Data de nascimento inválida." };
+    if (Number.isNaN(dataNascimento.getTime())) return { erro: "Data de nascimento inválida." };
+    if (dataNascimento > new Date()) {
+      return { erro: "A data de nascimento não pode estar no futuro." };
     }
   }
 

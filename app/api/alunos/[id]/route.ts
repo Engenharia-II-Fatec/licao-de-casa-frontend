@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao } from "@/lib/api-auth";
+import { parseDataBr } from "@/features/alunos/validacao";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -69,6 +70,30 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     if (!body) {
       return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+    }
+
+    // Idade negativa: bloqueia data de nascimento no futuro. O formato não é checado aqui
+    // para não travar a edição de cadastros antigos com datas em outro formato.
+    const nascimento = body.birthDate ? parseDataBr(String(body.birthDate)) : null;
+    if (nascimento && nascimento > new Date()) {
+      return NextResponse.json(
+        { error: "A data de nascimento não pode estar no futuro." },
+        { status: 400 },
+      );
+    }
+
+    const cpf = typeof body.cpf === "string" ? body.cpf.trim() : "";
+    if (cpf) {
+      const outro = await prisma.aluno.findFirst({
+        where: { cpf, NOT: { id } },
+        select: { name: true, id: true },
+      });
+      if (outro) {
+        return NextResponse.json(
+          { error: `Já existe outro aluno com este CPF: ${outro.name} (matrícula ${outro.id}).` },
+          { status: 409 },
+        );
+      }
     }
 
     const atualizado = await prisma.aluno.update({
@@ -150,19 +175,48 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
+/**
+ * Regra de negócio: nenhum cadastro é excluído de forma permanente.
+ * DELETE inativa o aluno (status "Inativo") e mantém dados e histórico de pagamentos;
+ * PATCH { ativo } inativa ou reativa.
+ */
+async function alterarStatusAluno(id: string, ativo: boolean) {
+  const existe = await prisma.aluno.findUnique({ where: { id }, select: { id: true } });
+  if (!existe) return NextResponse.json({ error: "Aluno não encontrado." }, { status: 404 });
+  const atualizado = await prisma.aluno.update({
+    where: { id },
+    data: { status: ativo ? "Ativo" : "Inativo" },
+    select: { id: true, name: true, status: true },
+  });
+  return NextResponse.json(atualizado);
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
+  try {
+    const { id } = await params;
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body.ativo !== "boolean") {
+      return NextResponse.json({ error: 'Informe "ativo": true ou false.' }, { status: 400 });
+    }
+    return await alterarStatusAluno(id, body.ativo);
+  } catch (error) {
+    console.error("Erro ao alterar status do aluno:", error);
+    return NextResponse.json({ error: "Erro ao alterar o status do aluno." }, { status: 500 });
+  }
+}
+
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const negado = await exigirSessao();
   if (negado) return negado;
 
   try {
     const { id } = await params;
-    await prisma.aluno.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
+    return await alterarStatusAluno(id, false);
   } catch (error) {
-    console.error("Erro ao excluir aluno:", error);
-    return NextResponse.json({ error: "Erro ao excluir aluno." }, { status: 500 });
+    console.error("Erro ao inativar aluno:", error);
+    return NextResponse.json({ error: "Erro ao inativar o aluno." }, { status: 500 });
   }
 }

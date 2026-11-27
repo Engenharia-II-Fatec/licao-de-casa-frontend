@@ -12,7 +12,7 @@ import { ehTitular, filtrarAlunos } from "../utils";
 import { AlunoDependenteDialog } from "./aluno-dependente-dialog";
 import { AlunoEditarDialog } from "./aluno-editar-dialog";
 import { AlunoTitularDialog } from "./aluno-titular-dialog";
-import { ExcluirAlunoDialog } from "./excluir-aluno-dialog";
+import { StatusAlunoDialog } from "./status-aluno-dialog";
 import { FiltrosDialog } from "./filtros-dialog";
 
 const ALUNOS_POR_PAGINA = 10;
@@ -43,7 +43,7 @@ export function AlunosListagem() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [studentDetails, setStudentDetails] = useState<Aluno | null>(null);
   const [editingStudent, setEditingStudent] = useState<Aluno | null>(null);
-  const [studentToDelete, setStudentToDelete] = useState<Aluno | null>(null);
+  const [alunoParaStatus, setAlunoParaStatus] = useState<Aluno | null>(null);
 
   const filteredStudents = useMemo(
     () =>
@@ -290,21 +290,27 @@ export function AlunosListagem() {
                                 >
                                   {/* Coluna Aluno */}
                                   <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
+                                    {/* Clicar no aluno (foto ou nome) abre o perfil detalhado. */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStudentNameClick(student)}
+                                      title="Ver perfil do aluno"
+                                      className="group/aluno flex items-center gap-3 rounded-xl text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c2410c]"
+                                    >
                                       <div
                                         className={`w-10 h-10 rounded-full ${student.avatarBg} flex items-center justify-center ${student.avatarText} font-bold text-sm select-none shadow-sm`}
                                       >
                                         {student.initials}
                                       </div>
                                       <div>
-                                        <p className="font-bold text-[#1b1c1c] text-left leading-none">
+                                        <p className="font-bold text-[#1b1c1c] text-left leading-none group-hover/aluno:text-[#c2410c] group-hover/aluno:underline underline-offset-2">
                                           {student.name}
                                         </p>
                                         <p className="text-xs text-[#584237] mt-1 font-medium">
-                                          ID: {student.id}
+                                          Matrícula {student.id}
                                         </p>
                                       </div>
-                                    </div>
+                                    </button>
                                   </td>
 
                                   {/* Coluna Responsável Financeiro */}
@@ -344,18 +350,6 @@ export function AlunosListagem() {
                                   <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
                                       <button
-                                        onClick={() => handleStudentNameClick(student)}
-                                        className="p-2 text-[#00629f] bg-[#d0e4ff]/40 hover:bg-[#d0e4ff]/80 rounded-xl transition-all active:scale-95 cursor-pointer"
-                                        title="Ver Perfil Detalhado"
-                                      >
-                                        <span
-                                          className="material-symbols-outlined text-[20px]"
-                                          style={{ fontVariationSettings: "'FILL' 1" }}
-                                        >
-                                          account_circle
-                                        </span>
-                                      </button>
-                                      <button
                                         onClick={() => setEditingStudent({ ...student })}
                                         className="p-2 text-[#584237] hover:bg-[#eae8e7] rounded-xl transition-all active:scale-95 cursor-pointer"
                                         title="Editar"
@@ -364,15 +358,29 @@ export function AlunosListagem() {
                                           edit_note
                                         </span>
                                       </button>
-                                      <button
-                                        onClick={() => setStudentToDelete(student)}
-                                        className="p-2 text-[#ba1a1a] hover:bg-[#ffdad6]/60 rounded-xl transition-all active:scale-95 cursor-pointer"
-                                        title="Excluir"
-                                      >
-                                        <span className="material-symbols-outlined text-[20px]">
-                                          delete_outline
-                                        </span>
-                                      </button>
+                                      {student.status === 'Inativo' ? (
+                                        <button
+                                          onClick={() => setAlunoParaStatus(student)}
+                                          className="p-2 text-[#006a65] hover:bg-[#cbfaf6]/70 rounded-xl transition-all active:scale-95 cursor-pointer"
+                                          title="Reativar"
+                                          aria-label={`Reativar ${student.name}`}
+                                        >
+                                          <span className="material-symbols-outlined text-[20px]">
+                                            person_check
+                                          </span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => setAlunoParaStatus(student)}
+                                          className="p-2 text-[#ba1a1a] hover:bg-[#ffdad6]/60 rounded-xl transition-all active:scale-95 cursor-pointer"
+                                          title="Inativar"
+                                          aria-label={`Inativar ${student.name}`}
+                                        >
+                                          <span className="material-symbols-outlined text-[20px]">
+                                            person_off
+                                          </span>
+                                        </button>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -467,11 +475,11 @@ export function AlunosListagem() {
         />
       )}
 
-      {studentToDelete && (
-        <ExcluirAlunoDialog
-          aluno={studentToDelete}
-          onClose={() => setStudentToDelete(null)}
-          onDeleted={recarregar}
+      {alunoParaStatus && (
+        <StatusAlunoDialog
+          aluno={alunoParaStatus}
+          onClose={() => setAlunoParaStatus(null)}
+          onChanged={recarregar}
         />
       )}
 

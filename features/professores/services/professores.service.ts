@@ -8,7 +8,6 @@ export interface ProfessoresService {
   atualizar(id: number, dados: ProfessorInput): Promise<ProfessorDetalhe>;
   /** Inativa (`false`) ou reativa (`true`) sem apagar vínculos nem histórico. */
   alterarStatus(id: number, ativo: boolean): Promise<ProfessorDetalhe>;
-  excluir(id: number): Promise<void>;
   /** Disciplinas que podem ser vinculadas ao professor. */
   listarDisciplinas(): Promise<DisciplinaOpcao[]>;
   /** Endereço para visualizar/baixar o currículo salvo. */
@@ -22,10 +21,3 @@ export class ProfessorNaoEncontradoError extends Error {
   }
 }
 
-/** O professor tem aulas na agenda e não pode ser excluído (só inativado). */
-export class ProfessorComAulasError extends Error {
-  constructor(mensagem: string) {
-    super(mensagem);
-    this.name = "ProfessorComAulasError";
-  }
-}

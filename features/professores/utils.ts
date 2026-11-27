@@ -150,7 +150,9 @@ export function mascararValor(valor: string): string {
   return resto.length > 0 ? `${inteiro.slice(0, 7)},${centavos}` : inteiro.slice(0, 7);
 }
 
-export type ErrosForm = Partial<Record<"nome" | "email" | "telefone" | "cpf" | "valorHoraAula", string>>;
+export type ErrosForm = Partial<
+  Record<"nome" | "email" | "telefone" | "cpf" | "valorHoraAula" | "dataNascimento", string>
+>;
 
 export function validarFormulario(f: FormProfessor): ErrosForm {
   const erros: ErrosForm = {};
@@ -161,6 +163,15 @@ export function validarFormulario(f: FormProfessor): ErrosForm {
   const cpf = f.cpf.replace(/\D/g, "");
   if (cpf && cpf.length !== 11) erros.cpf = "CPF incompleto.";
   if (f.valorHoraAula && Number.isNaN(parseMoeda(f.valorHoraAula))) erros.valorHoraAula = "Valor inválido.";
+  if (f.dataNascimento) {
+    // Input type="date" entrega "aaaa-mm-dd"; compara como data local para não errar no fuso.
+    const [ano, mes, dia] = f.dataNascimento.split("-").map(Number);
+    const nascimento = new Date(ano, mes - 1, dia);
+    const hoje = new Date();
+    if (Number.isNaN(nascimento.getTime())) erros.dataNascimento = "Data de nascimento inválida.";
+    else if (nascimento > hoje) erros.dataNascimento = "A data de nascimento não pode estar no futuro.";
+    else if (hoje.getFullYear() - ano > 100) erros.dataNascimento = "Confira o ano de nascimento.";
+  }
   return erros;
 }
 

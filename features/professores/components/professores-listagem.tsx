@@ -41,8 +41,9 @@ export function ProfessoresListagem() {
   const { professores, carregando, erro, recarregar } = useListaProfessores();
   const [busca, setBusca] = useState("");
   const [situacao, setSituacao] = useState<FiltroSituacao>("Todos");
-  const [paraExcluir, setParaExcluir] = useState<Professor | null>(null);
-  const [excluindo, setExcluindo] = useState(false);
+  // Nenhum professor é excluído: a lixeira virou Inativar/Reativar.
+  const [paraStatus, setParaStatus] = useState<Professor | null>(null);
+  const [salvandoStatus, setSalvandoStatus] = useState(false);
 
   const filtrados = useMemo(
     () => filtrarProfessores(professores, { busca, situacao }),
@@ -58,18 +59,21 @@ export function ProfessoresListagem() {
   const inicio = (pagina - 1) * POR_PAGINA;
   const daPagina = filtrados.slice(inicio, inicio + POR_PAGINA);
 
-  async function confirmarExclusao() {
-    if (!paraExcluir) return;
-    setExcluindo(true);
+  async function confirmarStatus() {
+    if (!paraStatus) return;
+    const ativar = !paraStatus.ativo;
+    setSalvandoStatus(true);
     try {
-      await professoresService.excluir(paraExcluir.id);
-      toast.success(`Professor ${paraExcluir.nome} excluído.`);
+      await professoresService.alterarStatus(paraStatus.id, ativar);
+      toast.success(`Professor ${paraStatus.nome} ${ativar ? "reativado" : "inativado"}.`);
       recarregar();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível excluir o professor.");
+      toast.error(
+        e instanceof Error ? e.message : `Não foi possível ${ativar ? "reativar" : "inativar"} o professor.`,
+      );
     } finally {
-      setParaExcluir(null);
-      setExcluindo(false);
+      setParaStatus(null);
+      setSalvandoStatus(false);
     }
   }
 
@@ -243,11 +247,18 @@ export function ProfessoresListagem() {
                         </Link>
                         <button
                           type="button"
-                          onClick={() => setParaExcluir(p)}
-                          title={`Excluir ${p.nome}`}
-                          className="rounded-xl p-2 text-error transition hover:bg-error-container/60 active:scale-95"
+                          onClick={() => setParaStatus(p)}
+                          title={`${p.ativo ? "Inativar" : "Reativar"} ${p.nome}`}
+                          aria-label={`${p.ativo ? "Inativar" : "Reativar"} ${p.nome}`}
+                          className={`rounded-xl p-2 transition active:scale-95 ${
+                            p.ativo
+                              ? "text-error hover:bg-error-container/60"
+                              : "text-tertiary hover:bg-tertiary-fixed/40"
+                          }`}
                         >
-                          <span className="material-symbols-outlined text-[20px]">delete_outline</span>
+                          <span className="material-symbols-outlined text-[20px]">
+                            {p.ativo ? "person_off" : "person_check"}
+                          </span>
                         </button>
                       </div>
                     </td>
@@ -304,20 +315,25 @@ export function ProfessoresListagem() {
       </div>
 
       <ConfirmDialog
-        open={paraExcluir !== null}
-        title="Excluir professor?"
+        open={paraStatus !== null}
+        title={paraStatus?.ativo === false ? "Reativar professor?" : "Inativar professor?"}
         description={
-          <>
-            O cadastro de <b>{paraExcluir ? paraExcluir.nome : ""}</b> e os vínculos com disciplinas serão removidos.
-            Esta ação não pode ser desfeita. Se ele já tiver aulas na agenda, use <b>Inativar Professor</b> na tela de
-            edição.
-          </>
+          paraStatus?.ativo === false ? (
+            <>
+              <b>{paraStatus?.nome}</b> volta a ficar ativo e disponível para as disciplinas.
+            </>
+          ) : (
+            <>
+              <b>{paraStatus?.nome}</b> passa a ficar inativo. Nada é apagado: o cadastro, os vínculos com
+              disciplinas e as aulas da agenda continuam guardados, e ele pode ser reativado depois.
+            </>
+          )
         }
-        confirmLabel="Excluir"
-        tone="danger"
-        loading={excluindo}
-        onConfirm={confirmarExclusao}
-        onClose={() => setParaExcluir(null)}
+        confirmLabel={paraStatus?.ativo === false ? "Reativar" : "Inativar"}
+        tone={paraStatus?.ativo === false ? "primary" : "danger"}
+        loading={salvandoStatus}
+        onConfirm={confirmarStatus}
+        onClose={() => setParaStatus(null)}
       />
     </div>
   );

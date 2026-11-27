@@ -48,3 +48,6 @@ export const CADASTRO_RESPONSAVEL_INICIAL: CadastroResponsavelForm = {
   city: "",
   state: "",
 };
+
+/** Valor de `selectedResponsibleId` / do seletor quando o aluno é o próprio titular da conta. */
+export const SEM_RESPONSAVEL = "__titular__";

@@ -6,7 +6,7 @@ export function PlanoNaoEncontrado({ erro }: { erro?: string | null }) {
   return (
     <EmptyState
       title={erro ? "Algo deu errado" : "Plano não encontrado"}
-      description={erro ?? "O plano que você procura não existe ou foi excluído."}
+      description={erro ?? "O plano que você procura não existe ou o link está incorreto."}
       action={
         <Link href="/planos" className={buttonClasses()}>
           Voltar para planos

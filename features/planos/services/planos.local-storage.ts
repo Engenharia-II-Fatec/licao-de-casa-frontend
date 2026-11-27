@@ -80,12 +80,19 @@ export class PlanosLocalStorageService implements PlanosService {
     return atualizado;
   }
 
-  async excluir(id: string): Promise<void> {
+  async alterarStatus(id: string, ativo: boolean): Promise<Plano> {
     const planos = carregar();
-    if (!planos.some((p) => p.id === id)) throw new PlanoNaoEncontradoError();
+    const atual = planos.find((p) => p.id === id);
+    if (!atual) throw new PlanoNaoEncontradoError();
+    const atualizado: Plano = {
+      ...atual,
+      status: ativo ? "ATIVO" : "INATIVO",
+      atualizadoEm: new Date().toISOString(),
+    };
     gravarJson(
       CHAVE,
-      planos.filter((p) => p.id !== id),
+      planos.map((p) => (p.id === id ? atualizado : p)),
     );
+    return atualizado;
   }
 }

@@ -3,8 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useToast } from "@/components/ui/toast";
 import { alunosService } from "../services";
+import { foiAlterado, useFecharModal } from "../use-fechar-modal";
 import type { Aluno } from "../types";
-import { tipoBadgeDoPlano } from "../utils";
+import { ehTitular, tipoBadgeDoPlano, tornarTitular } from "../utils";
+import { ResponsavelSelect } from "./responsavel-select";
 
 interface Props {
   aluno: Aluno;
@@ -16,13 +18,25 @@ interface Props {
 export function AlunoEditarDialog({ aluno, onClose, onSaved }: Props) {
   const toast = useToast();
   const [editingStudent, setEditingStudent] = useState<Aluno>({ ...aluno });
+  const { pedirFechamento, onBackdropClick, dialogoDescarte } = useFecharModal({
+    sujo: foiAlterado({ ...aluno }, editingStudent),
+    onClose,
+  });
+  // Titular é decidido pelo vínculo, não pelo texto: guarda se o aluno começou como titular.
+  const [eraTitular, setEraTitular] = useState(!aluno.responsavelId && ehTitular(aluno));
 
   const handleUpdateStudent = async (e: FormEvent) => {
     e.preventDefault();
+    if (!editingStudent.responsavelId && !eraTitular) {
+      toast.error("Selecione um responsável cadastrado ou defina o aluno como titular.");
+      return;
+    }
+    // Titular renomeado: mantém `guardian` igual ao nome para continuar sendo titular.
+    const paraSalvar = eraTitular ? tornarTitular(editingStudent) : editingStudent;
     try {
       await alunosService.atualizar({
-        ...editingStudent,
-        planBadgeType: tipoBadgeDoPlano(editingStudent.plan),
+        ...paraSalvar,
+        planBadgeType: tipoBadgeDoPlano(paraSalvar.plan),
       });
     } catch (erro) {
       toast.error(erro instanceof Error ? erro.message : "Não foi possível atualizar o aluno.");
@@ -34,7 +48,7 @@ export function AlunoEditarDialog({ aluno, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onBackdropClick}>
       <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-[#f0eded] relative">
         <div className="flex items-center justify-between pb-4 border-b border-[#f0eded]">
           <div className="flex items-center gap-3">
@@ -43,11 +57,19 @@ export function AlunoEditarDialog({ aluno, onClose, onSaved }: Props) {
             </div>
             <div>
               <h4 className="text-xl font-extrabold text-[#1b1c1c]">Editar Aluno</h4>
-              <p className="text-xs text-[#584237]">Atualize os dados de {editingStudent.name}</p>
+              <p className="text-xs text-[#584237]">Atualize os dados de {aluno.name}</p>
+              {/* Contexto para conferir se é o aluno certo sem sair da edição. */}
+              <p className="mt-1 text-[11px] text-[#584237]/80">
+                Matrícula {aluno.id}
+                {aluno.birthDate && <> • Nasc. {aluno.birthDate}</>}
+                {(aluno.guardianPhone || aluno.schoolName) && (
+                  <> • {aluno.guardianPhone || aluno.schoolName}</>
+                )}
+              </p>
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={pedirFechamento}
             className="p-2 text-[#584237] hover:bg-[#f5f3f3] rounded-full transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined">close</span>
@@ -77,22 +99,22 @@ export function AlunoEditarDialog({ aluno, onClose, onSaved }: Props) {
               </label>
               <button
                 type="button"
-                onClick={() =>
-                  setEditingStudent({ ...editingStudent, guardian: editingStudent.name })
-                }
+                onClick={() => {
+                  setEditingStudent(tornarTitular(editingStudent));
+                  setEraTitular(true);
+                }}
                 className="text-[11px] font-bold text-[#c2410c] hover:underline cursor-pointer"
               >
                 Definir aluno como titular
               </button>
             </div>
-            <input
-              type="text"
-              required
-              value={editingStudent.guardian}
-              onChange={(e) =>
-                setEditingStudent({ ...editingStudent, guardian: e.target.value })
-              }
-              className="w-full px-4 py-3 bg-[#f5f3f3] border-none rounded-xl focus:ring-2 focus:ring-[#9e4300]/30 outline-none text-sm font-medium"
+            <ResponsavelSelect
+              aluno={editingStudent}
+              titular={eraTitular}
+              onChange={(atualizado) => {
+                setEditingStudent(atualizado);
+                setEraTitular(!atualizado.responsavelId);
+              }}
             />
           </div>
 
@@ -139,7 +161,7 @@ export function AlunoEditarDialog({ aluno, onClose, onSaved }: Props) {
           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-[#f0eded]">
             <button
               type="button"
-              onClick={onClose}
+              onClick={pedirFechamento}
               className="px-5 py-2.5 rounded-full text-sm font-bold text-[#584237] hover:bg-[#f5f3f3] transition-colors cursor-pointer"
             >
               Cancelar
@@ -152,6 +174,7 @@ export function AlunoEditarDialog({ aluno, onClose, onSaved }: Props) {
             </button>
           </div>
         </form>
+        {dialogoDescarte}
       </div>
     </div>
   );

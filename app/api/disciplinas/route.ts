@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { exigirSessao } from "@/lib/api-auth";
-import type { Prisma } from "@prisma/client";
 import type { Area, Disciplina } from "@/features/disciplinas/types";
 
 type DisciplinaComRelacoes = Prisma.DisciplinaGetPayload<{
@@ -112,6 +112,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(mapearDisciplina(criada), { status: 201 });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Já existe uma disciplina com este nome. Escolha outro nome." },
+        { status: 409 },
+      );
+    }
     console.error("Erro ao criar disciplina:", error);
     return NextResponse.json({ error: "Erro ao criar disciplina." }, { status: 500 });
   }

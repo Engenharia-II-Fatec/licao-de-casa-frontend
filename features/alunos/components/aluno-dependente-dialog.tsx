@@ -5,7 +5,9 @@ import { useState, type FormEvent } from "react";
 import { useToast } from "@/components/ui/toast";
 import { mascararEmail, mascararTelefone } from "@/lib/masks";
 import { alunosService } from "../services";
+import { foiAlterado, useFecharModal } from "../use-fechar-modal";
 import type { Aluno } from "../types";
+import { ResponsavelSelect } from "./responsavel-select";
 
 interface Props {
   aluno: Aluno;
@@ -18,6 +20,13 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
   const toast = useToast();
   const showToast = toast.success;
   const [dependentFormData, setDependentFormData] = useState<Aluno>({ ...aluno });
+  const { pedirFechamento, onBackdropClick, dialogoDescarte } = useFecharModal({
+    sujo: foiAlterado({ ...aluno }, dependentFormData),
+    onClose,
+  });
+  const [mostrarVinculo, setMostrarVinculo] = useState(false);
+  // `guardian` tem nome mas não aponta para um Responsavel cadastrado (dado antigo / edição por texto).
+  const semVinculo = !dependentFormData.responsavelId;
 
   const handleSaveDependentChanges = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,7 +42,7 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in" onClick={onBackdropClick}>
       <div className="bg-white rounded-[2rem] max-w-4xl w-full shadow-2xl overflow-hidden border border-[#f0eded] my-auto relative">
         {/* Header: Foto do aluno, Nome, ATIVO, ID, Matrícula e botão Fechar */}
         <div className="p-6 sm:p-8 pb-4 flex items-start justify-between">
@@ -61,13 +70,13 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                   <span className="material-symbols-outlined text-base text-[#584237]/70">
                     badge
                   </span>
-                  <span>ID: #{dependentFormData.id}</span>
+                  <span>Matrícula: {dependentFormData.id}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-[#584237]/70">
                     calendar_today
                   </span>
-                  <span>Matrícula: {dependentFormData.joinedDate || '12/01/2024'}</span>
+                  <span>Desde: {dependentFormData.joinedDate || '—'}</span>
                 </div>
               </div>
             </div>
@@ -76,7 +85,7 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
           {/* Close Button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={pedirFechamento}
             className="text-[#584237]/70 hover:text-[#1b1c1c] p-2 hover:bg-[#f5f3f3] rounded-full transition-colors cursor-pointer"
             title="Fechar"
           >
@@ -222,7 +231,9 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                         {dependentFormData.guardian}
                       </h5>
                       <p className="text-xs text-[#584237]/80 mt-0.5">
-                        Faturas e pagamentos ficam no perfil do responsável.
+                        {semVinculo
+                          ? "Nome registrado, mas sem cadastro de responsável vinculado."
+                          : "Faturas e pagamentos ficam no perfil do responsável."}
                       </p>
                     </div>
                   </div>
@@ -235,9 +246,14 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                       <span className="material-symbols-outlined text-sm">arrow_forward</span>
                     </Link>
                   ) : (
-                    <span className="text-xs font-semibold text-[#584237]/70 shrink-0">
-                      Nenhum responsável vinculado
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarVinculo(true)}
+                      className="bg-white hover:bg-[#f0f7ff] text-[#00629f] px-4 py-2.5 rounded-full font-bold text-xs shadow-sm border border-[#d0e4ff]/70 flex items-center gap-1.5 transition-all active:scale-95 shrink-0 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">link</span>
+                      <span>Vincular ao cadastro de responsável</span>
+                    </button>
                   )}
                 </div>
               </div>
@@ -310,7 +326,9 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                         {dependentFormData.guardian}
                       </h5>
                       <p className="text-xs text-[#584237]/75 font-medium mt-0.5">
-                        {dependentFormData.guardianRole || 'Mãe • Principal'}
+                        {semVinculo
+                          ? 'Não vinculado a um cadastro'
+                          : dependentFormData.guardianRole || 'Responsável • Principal'}
                       </p>
                     </div>
                   </div>
@@ -328,16 +346,26 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
                 {/* Botão com Borda Tracejada: + Vincular Novo */}
                 <button
                   type="button"
-                  onClick={() =>
-                    showToast(
-                      `Vincular novo tutor ou responsável secundário para ${dependentFormData.name}`
-                    )
-                  }
+                  onClick={() => setMostrarVinculo((v) => !v)}
                   className="w-full mt-4 border-2 border-dashed border-[#dfc0b2]/60 hover:border-[#9e4300] bg-transparent rounded-2xl py-3 px-4 flex items-center justify-center gap-1.5 text-xs font-bold text-[#1b1c1c] hover:bg-[#fff9f5] transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">add</span>
-                  <span>Vincular Novo</span>
+                  <span>{semVinculo ? 'Vincular Responsável' : 'Trocar Responsável'}</span>
                 </button>
+                {mostrarVinculo && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    <ResponsavelSelect
+                      aluno={dependentFormData}
+                      onChange={(atualizado) => {
+                        setDependentFormData(atualizado);
+                        setMostrarVinculo(false);
+                      }}
+                    />
+                    <p className="text-[11px] text-[#584237]/70">
+                      O vínculo é gravado ao clicar em &ldquo;Salvar Alterações&rdquo;.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -346,7 +374,7 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
           <div className="p-6 sm:p-8 pt-4 border-t border-[#f0eded] flex justify-end items-center gap-4 bg-white">
             <button
               type="button"
-              onClick={onClose}
+              onClick={pedirFechamento}
               className="px-6 py-3 rounded-full text-sm font-bold text-[#584237] hover:bg-[#f5f3f3] transition-colors cursor-pointer"
             >
               Cancelar
@@ -359,6 +387,7 @@ export function AlunoDependenteDialog({ aluno, onClose, onSaved }: Props) {
             </button>
           </div>
         </form>
+        {dialogoDescarte}
       </div>
     </div>
   );

@@ -101,19 +101,46 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
+/**
+ * Regra de negócio: nenhum cadastro é excluído de forma permanente.
+ * DELETE inativa o plano (status "INATIVO"); PATCH { ativo } inativa ou reativa.
+ */
+async function alterarStatusPlano(id: string, ativo: boolean) {
+  const existe = await prisma.plano.findUnique({ where: { id }, select: { id: true } });
+  if (!existe) return NextResponse.json({ error: "Plano não encontrado." }, { status: 404 });
+  const atualizado = await prisma.plano.update({
+    where: { id },
+    data: { status: ativo ? "ATIVO" : "INATIVO" },
+  });
+  return NextResponse.json(mapearPlano(atualizado));
+}
+
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const negado = await exigirSessao();
+  if (negado) return negado;
+
+  try {
+    const { id } = await params;
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body.ativo !== "boolean") {
+      return NextResponse.json({ error: 'Informe "ativo": true ou false.' }, { status: 400 });
+    }
+    return await alterarStatusPlano(id, body.ativo);
+  } catch (error) {
+    console.error("Erro ao alterar status do plano:", error);
+    return NextResponse.json({ error: "Erro ao alterar o status do plano." }, { status: 500 });
+  }
+}
+
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const negado = await exigirSessao();
   if (negado) return negado;
 
   try {
     const { id } = await params;
-    await prisma.plano.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true });
+    return await alterarStatusPlano(id, false);
   } catch (error) {
-    console.error("Erro ao excluir plano:", error);
-    return NextResponse.json({ error: "Erro ao excluir plano." }, { status: 500 });
+    console.error("Erro ao inativar plano:", error);
+    return NextResponse.json({ error: "Erro ao inativar o plano." }, { status: 500 });
   }
 }

@@ -51,8 +51,9 @@ export function ResponsaveisListagem() {
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState<FiltroStatusFinanceiro>("Todos");
   const [plano, setPlano] = useState(PLANO_TODOS);
-  const [paraExcluir, setParaExcluir] = useState<ResponsavelResumo | null>(null);
-  const [excluindo, setExcluindo] = useState(false);
+  // Nenhum responsável é excluído: a lixeira virou Inativar/Reativar.
+  const [paraStatus, setParaStatus] = useState<ResponsavelResumo | null>(null);
+  const [salvandoStatus, setSalvandoStatus] = useState(false);
 
   const planos = useMemo(() => planosDosAlunos(responsaveis), [responsaveis]);
   const filtrados = useMemo(
@@ -69,18 +70,23 @@ export function ResponsaveisListagem() {
   const inicio = (pagina - 1) * POR_PAGINA;
   const daPagina = filtrados.slice(inicio, inicio + POR_PAGINA);
 
-  async function confirmarExclusao() {
-    if (!paraExcluir) return;
-    setExcluindo(true);
+  async function confirmarStatus() {
+    if (!paraStatus) return;
+    const ativar = !paraStatus.ativo;
+    setSalvandoStatus(true);
     try {
-      await responsaveisDetalheService.excluir(paraExcluir.id);
-      toast.success(`Responsável ${paraExcluir.name} excluído.`);
+      await responsaveisDetalheService.alterarStatus(paraStatus.id, ativar);
+      toast.success(`Responsável ${paraStatus.name} ${ativar ? "reativado" : "inativado"}.`);
       recarregar();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível excluir o responsável.");
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : `Não foi possível ${ativar ? "reativar" : "inativar"} o responsável.`,
+      );
     } finally {
-      setParaExcluir(null);
-      setExcluindo(false);
+      setParaStatus(null);
+      setSalvandoStatus(false);
     }
   }
 
@@ -288,11 +294,18 @@ export function ResponsaveisListagem() {
                           </Link>
                           <button
                             type="button"
-                            onClick={() => setParaExcluir(r)}
-                            title={`Excluir ${r.name}`}
-                            className="rounded-xl p-2 text-error transition hover:bg-error-container/60 active:scale-95"
+                            onClick={() => setParaStatus(r)}
+                            title={`${r.ativo ? "Inativar" : "Reativar"} ${r.name}`}
+                            aria-label={`${r.ativo ? "Inativar" : "Reativar"} ${r.name}`}
+                            className={`rounded-xl p-2 transition active:scale-95 ${
+                              r.ativo
+                                ? "text-error hover:bg-error-container/60"
+                                : "text-tertiary hover:bg-tertiary-fixed/40"
+                            }`}
                           >
-                            <span className="material-symbols-outlined text-[20px]">delete_outline</span>
+                            <span className="material-symbols-outlined text-[20px]">
+                              {r.ativo ? "person_off" : "person_check"}
+                            </span>
                           </button>
                         </div>
                       </td>
@@ -350,29 +363,30 @@ export function ResponsaveisListagem() {
       </div>
 
       <ConfirmDialog
-        open={paraExcluir !== null}
-        title="Excluir responsável?"
+        open={paraStatus !== null}
+        title={paraStatus?.ativo === false ? "Reativar responsável?" : "Inativar responsável?"}
         description={
-          paraExcluir && paraExcluir.dependentes.length > 0 ? (
+          paraStatus?.ativo === false ? (
             <>
-              <b>{paraExcluir.name}</b> tem {paraExcluir.dependentes.length}{" "}
-              {paraExcluir.dependentes.length === 1 ? "aluno vinculado" : "alunos vinculados"} e não pode ser
-              excluído. Para mantê-lo sem uso, abra o cadastro e use <b>Inativar Responsável</b>.
+              <b>{paraStatus?.name}</b> volta a ficar ativo.
             </>
           ) : (
             <>
-              O cadastro de <b>{paraExcluir ? paraExcluir.name : ""}</b> será removido. Esta ação não pode ser
-              desfeita.
+              <b>{paraStatus?.name}</b> passa a ficar inativo. Nada é apagado: o cadastro, os dependentes
+              {paraStatus && paraStatus.dependentes.length > 0
+                ? ` (${paraStatus.dependentes.length} ${
+                    paraStatus.dependentes.length === 1 ? "aluno vinculado" : "alunos vinculados"
+                  })`
+                : ""}{" "}
+              e o histórico financeiro continuam guardados, e ele pode ser reativado depois.
             </>
           )
         }
-        confirmLabel={paraExcluir && paraExcluir.dependentes.length > 0 ? "Entendi" : "Excluir"}
-        tone={paraExcluir && paraExcluir.dependentes.length > 0 ? "primary" : "danger"}
-        loading={excluindo}
-        onConfirm={() =>
-          paraExcluir && paraExcluir.dependentes.length > 0 ? setParaExcluir(null) : confirmarExclusao()
-        }
-        onClose={() => setParaExcluir(null)}
+        confirmLabel={paraStatus?.ativo === false ? "Reativar" : "Inativar"}
+        tone={paraStatus?.ativo === false ? "primary" : "danger"}
+        loading={salvandoStatus}
+        onConfirm={confirmarStatus}
+        onClose={() => setParaStatus(null)}
       />
     </div>
   );

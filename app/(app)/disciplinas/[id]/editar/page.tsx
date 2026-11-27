@@ -6,28 +6,8 @@ import { use, useState } from "react";
 import { useToast } from "@/components/ui/toast";
 import { useDisciplina, useProfessoresOpcoes } from "@/features/disciplinas/hooks";
 import { disciplinasService } from "@/features/disciplinas/services";
+import { AREAS } from "@/features/disciplinas/constants";
 import type { Area, DisciplinaDetalhe } from "@/features/disciplinas/types";
-
-const CATEGORIAS = ["Exatas", "Humanas", "Linguagens", "Artes"] as const;
-type Categoria = (typeof CATEGORIAS)[number];
-
-// O protótipo da edição tem só 4 categorias, então as outras áreas são agrupadas.
-// A área só é regravada se o usuário escolher outra categoria.
-const AREA_DA_CATEGORIA: Record<Categoria, Area> = {
-  Exatas: "Exatas",
-  Humanas: "Humanas",
-  Linguagens: "Linguagens",
-  Artes: "Artes & Cultura",
-};
-
-const CATEGORIA_DA_AREA: Record<Area, Categoria> = {
-  Exatas: "Exatas",
-  Humanas: "Humanas",
-  Linguagens: "Linguagens",
-  Idiomas: "Linguagens",
-  "Ciências Naturais": "Exatas",
-  "Artes & Cultura": "Artes",
-};
 
 const classeRotulo = "mb-2 flex items-center gap-2 text-xs font-bold text-neutral-700";
 const classeCampo =
@@ -67,10 +47,11 @@ function Edicao({ disciplina }: { disciplina: DisciplinaDetalhe }) {
   const toast = useToast();
   const { professores: todosProfessores, carregando: carregandoProfessores, erro: erroProfessores } =
     useProfessoresOpcoes();
-  const categoriaInicial = CATEGORIA_DA_AREA[disciplina.area] ?? "Exatas";
+  // Mesmas 6 áreas do cadastro (antes a edição agrupava em 4 "categorias").
+  const areaInicial = disciplina.area;
 
   const [nome, setNome] = useState(disciplina.nome);
-  const [categoria, setCategoria] = useState<Categoria>(categoriaInicial);
+  const [area, setArea] = useState<Area>(areaInicial);
   const [descricao, setDescricao] = useState(disciplina.descricao);
   const [ativa, setAtiva] = useState(disciplina.ativa);
   const [professores, setProfessores] = useState<number[]>(disciplina.professoresIds);
@@ -94,7 +75,7 @@ function Edicao({ disciplina }: { disciplina: DisciplinaDetalhe }) {
         descricao: descricao.trim(),
         ativa,
         professores,
-        ...(categoria !== categoriaInicial ? { area: AREA_DA_CATEGORIA[categoria] } : {}),
+        ...(area !== areaInicial ? { area } : {}),
       });
       toast.success(`Disciplina ${nome.trim()} atualizada.`);
       router.push("/disciplinas");
@@ -206,16 +187,16 @@ function Edicao({ disciplina }: { disciplina: DisciplinaDetalhe }) {
                 <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                 <line x1="7" y1="7" x2="7.01" y2="7" />
               </Icone>
-              Categoria
+              Área de Conhecimento
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {CATEGORIAS.map((c) => (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {AREAS.map((c) => (
                 <button
                   key={c}
                   type="button"
-                  onClick={() => setCategoria(c)}
+                  onClick={() => setArea(c)}
                   className={`rounded-full border px-3 py-2.5 text-xs font-bold ${
-                    categoria === c
+                    area === c
                       ? "border-orange-400 bg-orange-100 text-orange-800"
                       : "border-transparent bg-[#f1eceb] text-neutral-700 hover:bg-orange-50"
                   }`}
