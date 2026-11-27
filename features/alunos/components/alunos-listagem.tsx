@@ -14,24 +14,9 @@ import { AlunoEditarDialog } from "./aluno-editar-dialog";
 import { AlunoTitularDialog } from "./aluno-titular-dialog";
 import { StatusAlunoDialog } from "./status-aluno-dialog";
 import { FiltrosDialog } from "./filtros-dialog";
+import { gerarBotoesPagina } from "@/lib/paginacao";
 
 const ALUNOS_POR_PAGINA = 10;
-
-/**
- * Números de página a exibir. Com muitas páginas, mostra a primeira, a última e
- * as vizinhas da atual, com "..." no meio (ex.: 1 … 4 5 6 … 12).
- */
-function gerarBotoesPagina(atual: number, total: number): (number | "...")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const paginas = new Set([1, total, atual - 1, atual, atual + 1]);
-  const ordenadas = [...paginas].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-  const resultado: (number | "...")[] = [];
-  ordenadas.forEach((p, i) => {
-    if (i > 0 && p - ordenadas[i - 1] > 1) resultado.push("...");
-    resultado.push(p);
-  });
-  return resultado;
-}
 
 /** Tela "Base de Alunos". */
 export function AlunosListagem() {
